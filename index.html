@@ -279,9 +279,9 @@
 
     window.togglePodioAbierto = async function() {
       // Guardar los valores actuales de los selects ANTES de toggle
-      const first = document.getElementById('podio_first')?.value;
-      const second = document.getElementById('podio_second')?.value;
-      const third = document.getElementById('podio_third')?.value;
+      const first = document.getElementById('first')?.value;
+      const second = document.getElementById('second')?.value;
+      const third = document.getElementById('third')?.value;
       
       state.config.podium_result = { first: first || '', second: second || '', third: third || '' };
       state.config.podioAbierto = state.config?.podioAbierto !== false ? false : true;
@@ -375,12 +375,12 @@
             </div>
             <hr>
             <div id="loginFields">
-              <input type="text" id="user" placeholder="Usuario" autocomplete="username">
-              <input type="password" id="pw" placeholder="Contraseña" autocomplete="current-password">
+              <input type="text" id="user" placeholder="Usuario" autocomplete="username" onkeypress="if(event.key==='Enter') doAuth()">
+              <input type="password" id="pw" placeholder="Contraseña" autocomplete="current-password" onkeypress="if(event.key==='Enter') doAuth()">
             </div>
             <div id="regFields" class="hidden">
-              <input type="text" id="name" placeholder="Tu nombre" autocomplete="name">
-              <input type="password" id="pw_reg" placeholder="Contraseña" autocomplete="new-password">
+              <input type="text" id="name" placeholder="Tu nombre" autocomplete="name" onkeypress="if(event.key==='Enter') doAuth()">
+              <input type="password" id="pw_reg" placeholder="Contraseña" autocomplete="new-password" onkeypress="if(event.key==='Enter') doAuth()">
             </div>
             <button onclick="doAuth()">Continuar</button>
           </div>
