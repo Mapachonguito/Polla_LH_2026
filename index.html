@@ -706,7 +706,7 @@
       const currency = state.config.moneda || 'CLP';
       const prizes = state.config.prizes || { first: 50, second: 25, third: 15, perfect: 10 };
       const scoring = state.config.scoring || { exact: 5, outcome: 2, champion: 10, second: 5, third: 2 };
-      const podiumReal = state.config.podium_result || {};
+      const podiumReal = state.config.podiumresult || {};
       const paidCount = Object.values(state.users).filter(u => u.paid).length;
       const pozo = paidCount * monto;
       
