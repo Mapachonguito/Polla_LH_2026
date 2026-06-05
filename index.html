@@ -159,9 +159,9 @@
         state.preds[state.me + '::' + mid] = {home: +h, away: +a};
         const exist = await sb.from('predictions').select('*').eq('userId', state.me).eq('matchId', mid);
         if(exist.data?.length) {
-          await sb.from('predictions').update({home_score: +h, away_score: +a}).eq('userId', state.me).eq('matchId', mid);
+          await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userId', state.me).eq('matchId', mid);
         } else {
-          await sb.from('predictions').insert([{userId: state.me, matchId: mid, home_score: +h, away_score: +a}]);
+          await sb.from('predictions').insert([{userId: state.me, matchId: mid, homescore: +h, awayscore: +a}]);
         }
       }
     };
@@ -238,12 +238,12 @@
         document.getElementById('res_a_' + mid).value = '';
       }
       
-      m.home_score = homeVal;
-      m.away_score = awayVal;
+      m.homescore = homeVal;
+      m.awayscore = awayVal;
       // Automático: si hay resultado → finished: true, si no → finished: false
       m.finished = homeVal !== '' && awayVal !== '';
       
-      await sb.from('matches').update({ home_score: m.home_score, away_score: m.away_score, finished: m.finished }).eq('id', mid);
+      await sb.from('matches').update({ homescore: m.homescore, awayscore: m.awayscore, finished: m.finished }).eq('id', mid);
     };
 
     window.autosavePodiumAdmin = async function() {
@@ -302,18 +302,19 @@
     async function init() {
       appEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Cargando...</div>';
       try {
-        // Queries simplificadas sin filtros
-        const cfg = await sb.from('config').select('id, poolname, scoring').catch(e => { console.error('Error config:', e); return { data: [] }; });
-        const u = await sb.from('users').select('id, displayname, pw, role, paid').catch(e => { console.error('Error users:', e); return { data: [] }; });
-        const m = await sb.from('matches').select('id, home, away, group_name, datetime, home_score, away_score, finished').catch(e => { console.error('Error matches:', e); return { data: [] }; });
-        const p = await sb.from('predictions').select('userId, matchId, home_score, away_score').catch(e => { console.error('Error predictions:', e); return { data: [] }; });
+        let cfg = { data: [] }, u = { data: [] }, m = { data: [] }, p = { data: [] };
+        
+        try { cfg = await sb.from('config').select('id, poolname, scoring').limit(1); } catch(e) { console.error('Error config:', e); }
+        try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { console.error('Error users:', e); }
+        try { m = await sb.from('matches').select('*'); } catch(e) { console.error('Error matches:', e); }
+        try { p = await sb.from('predictions').select('*'); } catch(e) { console.error('Error predictions:', e); }
         
         console.log('📊 Datos cargados - config:', cfg.data?.length, 'users:', u.data?.length, 'matches:', m.data?.length, 'predictions:', p.data?.length);
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
         (u.data || []).forEach(x => state.users[x.id] = x);
         (m.data || []).forEach(x => state.matches.push(x));
-        (p.data || []).forEach(x => state.preds[x.userId + '::' + x.matchId] = { home: x.home_score, away: x.away_score });
+        (p.data || []).forEach(x => state.preds[x.userId + '::' + x.matchId] = { home: x.homescore, away: x.awayscore });
         
         // Cargar sesión guardada desde localStorage
         const savedUser = localStorage.getItem('polla_user');
@@ -327,11 +328,19 @@
           render();
         } else if(!state.matches.length) {
           console.log('⚠️ No hay partidos, insertando 72...');
-          for(let i = 0; i < SCHEDULE.length; i++) {
-            const x = SCHEDULE[i];
-            await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
-          }
-          state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
+          const matchesData = SCHEDULE.map((x, i) => ({ 
+            id: 'm' + (i+1), 
+            home: x[0], 
+            away: x[1], 
+            group_name: x[2], 
+            datetime: x[3], 
+            homescore: '', 
+            awayscore: '', 
+            finished: false 
+          }));
+          const matchResult = await sb.from('matches').insert(matchesData);
+          if(matchResult.error) throw new Error('Matches: ' + matchResult.error.message);
+          state.matches = matchesData;
           console.log('✓ Partidos insertados');
           render();
         } else {
@@ -537,7 +546,7 @@
         }).forEach(m => {
           const p = state.preds[uid + '::' + m.id];
           if(!p) return;
-          const mh = +m.home_score, ma = +m.away_score, ph = +p.home, pa = +p.away;
+          const mh = +m.homescore, ma = +m.awayscore, ph = +p.home, pa = +p.away;
           if(ph === mh && pa === ma) ptsPartidos += scoring.exact;
           else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) ptsPartidos += scoring.outcome;
         });
@@ -577,10 +586,10 @@
         matches.forEach(m => {
           const pred = state.preds[p.uid + '::' + m.id];
           if(!pred) return;
-          const resultado = m.finished ? `${m.home_score}-${m.away_score}` : '?-?';
+          const resultado = m.finished ? `${m.homescore}-${m.awayscore}` : '?-?';
           let status = '', color = '', pts = '';
           if(m.finished) {
-            const mh = +m.home_score, ma = +m.away_score, ph = +pred.home, pa = +pred.away;
+            const mh = +m.homescore, ma = +m.awayscore, ph = +pred.home, pa = +pred.away;
             if(ph === mh && pa === ma) { status = '🟢'; color = 'var(--lime)'; pts = ` <strong style="color:var(--lime);">+${scoring.exact} pts</strong>`; }
             else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) { status = '🟡'; color = 'var(--gold)'; pts = ` <strong style="color:var(--gold);">+${scoring.outcome} pts</strong>`; }
             else { status = '🔴'; color = 'var(--coral)'; pts = ` <strong style="color:var(--coral);">0 pts</strong>`; }
@@ -660,8 +669,8 @@
           const m = state.matches.find(x => x.id === mid);
           if(!m || !m.finished) return; // Solo partidos terminados
           
-          const mh = +m.home_score;
-          const ma = +m.away_score;
+          const mh = +m.homescore;
+          const ma = +m.awayscore;
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           
@@ -688,8 +697,8 @@
           const mid = k.split('::')[1];
           const m = state.matches.find(x => x.id === mid);
           if(!m || !m.finished) return false;
-          const mh = +m.home_score;
-          const ma = +m.away_score;
+          const mh = +m.homescore;
+          const ma = +m.awayscore;
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           return ph === mh && pa === ma;
@@ -700,8 +709,8 @@
           const mid = k.split('::')[1];
           const m = state.matches.find(x => x.id === mid);
           if(!m || !m.finished) return false;
-          const mh = +m.home_score;
-          const ma = +m.away_score;
+          const mh = +m.homescore;
+          const ma = +m.awayscore;
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           return (ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma);
@@ -790,7 +799,7 @@
       
       html += `<div class="admin-section"><h3>Editar Resultados (${state.matches.length} partidos)</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Los cambios se guardan automáticamente</p>`;
       state.matches.forEach(m => {
-        html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:#0A0D16;border-radius:6px;"><span style="flex:1;font-size:12px;">${m.home} vs ${m.away}</span><input type="number" id="res_h_${m.id}" value="${m.home_score||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"><span>:</span><input type="number" id="res_a_${m.id}" value="${m.away_score||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"></div>`;
+        html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:#0A0D16;border-radius:6px;"><span style="flex:1;font-size:12px;">${m.home} vs ${m.away}</span><input type="number" id="res_h_${m.id}" value="${m.homescore||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"><span>:</span><input type="number" id="res_a_${m.id}" value="${m.awayscore||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"></div>`;
       });
       html += `</div>`;
       
@@ -838,8 +847,8 @@
           away: x[1], 
           group_name: x[2], 
           datetime: x[3], 
-          home_score: '', 
-          away_score: '', 
+          homescore: '', 
+          awayscore: '', 
           finished: false 
         }));
         const matchResult = await sb.from('matches').insert(matchesData);
@@ -849,7 +858,7 @@
         // Actualizar estado local
         state.config = config;
         state.users[adminUser] = { id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false };
-        state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
+        state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homescore: '', awayscore: '', finished: false }));
         state.me = adminUser;
         
         console.log('10. ✅ TODO GUARDADO CORRECTAMENTE');
@@ -1012,9 +1021,9 @@
           const key = state.me + '::' + m.id;
           
           if(exist.data?.length) {
-            await sb.from('predictions').update({ home_score: +h, away_score: +a }).eq('id', exist.data[0].id);
+            await sb.from('predictions').update({ homescore: +h, awayscore: +a }).eq('id', exist.data[0].id);
           } else {
-            await sb.from('predictions').insert([{ id: Date.now() + saved + '', userId: state.me, matchId: m.id, home_score: +h, away_score: +a }]);
+            await sb.from('predictions').insert([{ id: Date.now() + saved + '', userId: state.me, matchId: m.id, homescore: +h, awayscore: +a }]);
           }
           
           state.preds[key] = { home: +h, away: +a };
@@ -1083,11 +1092,11 @@
         const fin = document.getElementById(`fin_${m.id}`)?.checked;
         
         if(h !== undefined || a !== undefined || fin !== undefined) {
-          m.home_score = h;
-          m.away_score = a;
+          m.homescore = h;
+          m.awayscore = a;
           m.finished = fin;
           
-          await sb.from('matches').update({ home_score: h, away_score: a, finished: fin }).eq('id', m.id);
+          await sb.from('matches').update({ homescore: h, awayscore: a, finished: fin }).eq('id', m.id);
           saved++;
         }
       }
@@ -1118,11 +1127,11 @@
         const fin = document.getElementById(`fin_${m.id}`)?.checked;
         
         if(h !== undefined || a !== undefined || fin !== undefined) {
-          m.home_score = h;
-          m.away_score = a;
+          m.homescore = h;
+          m.awayscore = a;
           m.finished = fin;
           
-          await sb.from('matches').update({ home_score: h, away_score: a, finished: fin }).eq('id', m.id);
+          await sb.from('matches').update({ homescore: h, awayscore: a, finished: fin }).eq('id', m.id);
           saved++;
         }
       }
@@ -1157,12 +1166,12 @@
         away, 
         group_name: phase, 
         datetime, 
-        home_score: '', 
-        away_score: '', 
+        homescore: '', 
+        awayscore: '', 
         finished: false 
       }]);
       
-      state.matches.push({ id: newId, home, away, group_name: phase, datetime, home_score: '', away_score: '', finished: false });
+      state.matches.push({ id: newId, home, away, group_name: phase, datetime, homescore: '', awayscore: '', finished: false });
       
       document.getElementById('new_home').value = '';
       document.getElementById('new_away').value = '';
@@ -1179,11 +1188,11 @@
       const a = document.getElementById(`res_a_${mid}`)?.value;
       const fin = document.getElementById(`fin_${mid}`)?.checked;
       
-      m.home_score = h;
-      m.away_score = a;
+      m.homescore = h;
+      m.awayscore = a;
       m.finished = fin;
       
-      await sb.from('matches').update({ home_score: h, away_score: a, finished: fin }).eq('id', mid);
+      await sb.from('matches').update({ homescore: h, awayscore: a, finished: fin }).eq('id', mid);
       alert('✓ Resultado guardado');
       render();
     };
