@@ -302,10 +302,13 @@
     async function init() {
       appEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Cargando...</div>';
       try {
-        const cfg = await sb.from('config').select('*').limit(1).catch(e => { console.error('Error cargando config:', e); return { data: [] }; });
-        const u = await sb.from('users').select('*').catch(e => { console.error('Error cargando users:', e); return { data: [] }; });
-        const m = await sb.from('matches').select('*').catch(e => { console.error('Error cargando matches:', e); return { data: [] }; });
-        const p = await sb.from('predictions').select('*').catch(e => { console.error('Error cargando predictions:', e); return { data: [] }; });
+        // Queries simplificadas sin filtros
+        const cfg = await sb.from('config').select('id, poolname, scoring').catch(e => { console.error('Error config:', e); return { data: [] }; });
+        const u = await sb.from('users').select('id, displayname, pw, role, paid').catch(e => { console.error('Error users:', e); return { data: [] }; });
+        const m = await sb.from('matches').select('id, home, away, group_name, datetime, home_score, away_score, finished').catch(e => { console.error('Error matches:', e); return { data: [] }; });
+        const p = await sb.from('predictions').select('userId, matchId, home_score, away_score').catch(e => { console.error('Error predictions:', e); return { data: [] }; });
+        
+        console.log('📊 Datos cargados - config:', cfg.data?.length, 'users:', u.data?.length, 'matches:', m.data?.length, 'predictions:', p.data?.length);
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
         (u.data || []).forEach(x => state.users[x.id] = x);
@@ -320,6 +323,7 @@
         }
         
         if(!state.config) {
+          console.log('⚠️ No hay config, mostrando crear polla');
           render();
         } else if(!state.matches.length) {
           console.log('⚠️ No hay partidos, insertando 72...');
@@ -328,12 +332,14 @@
             await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
           }
           state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
+          console.log('✓ Partidos insertados');
           render();
         } else {
+          console.log('✓ Todo cargado correctamente');
           render();
         }
       } catch(e) { 
-        console.error('❌ Error crítico en init:', e); 
+        console.error('❌ Error en init:', e); 
         render(); 
       }
       
@@ -824,14 +830,21 @@
         console.log('7. Resultado usuario:', userResult);
         if(userResult.error) throw new Error('User: ' + userResult.error.message);
         
-        // Insertar PARTIDOS
-        console.log('8. Insertando partidos...');
-        for(let i = 0; i < SCHEDULE.length; i++) {
-          const x = SCHEDULE[i];
-          const matchResult = await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
-          if(matchResult.error) console.error('Error partido', i+1, matchResult.error);
-        }
-        console.log('9. Partidos insertados');
+        // Insertar PARTIDOS (todos de una vez)
+        console.log('8. Insertando 72 partidos...');
+        const matchesData = SCHEDULE.map((x, i) => ({ 
+          id: 'm' + (i+1), 
+          home: x[0], 
+          away: x[1], 
+          group_name: x[2], 
+          datetime: x[3], 
+          home_score: '', 
+          away_score: '', 
+          finished: false 
+        }));
+        const matchResult = await sb.from('matches').insert(matchesData);
+        if(matchResult.error) throw new Error('Matches: ' + matchResult.error.message);
+        console.log('9. Partidos insertados:', matchResult.data?.length);
         
         // Actualizar estado local
         state.config = config;
