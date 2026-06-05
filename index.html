@@ -404,8 +404,9 @@
       const teams = [...new Set(state.matches.flatMap(m => [m.home, m.away]))].sort();
       const pod = state.podium[state.me] || {};
       const days = [...new Set(allMatches.map(m => getDay(m.datetime)))];
+      const podioAbierto = state.config?.podioAbierto !== false;
       
-      let html = '<div style="display:flex;gap:8px;margin-bottom:16px;align-items:flex-end;background:#0A0D16;padding:12px;border-radius:8px;border-left:4px solid var(--lime);"><div style="flex:1"><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">🥇 CAMPEÓN</label><select id="first" onchange="autosavePodiumUser()" style="width:100%;font-size:11px"><option value="">--</option>' + teams.map(t => '<option value="' + t + '"' + (pod.first===t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div><div style="flex:1"><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">🥈 SEGUNDO</label><select id="second" onchange="autosavePodiumUser()" style="width:100%;font-size:11px"><option value="">--</option>' + teams.map(t => '<option value="' + t + '"' + (pod.second===t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div><div style="flex:1"><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">🥉 TERCERO</label><select id="third" onchange="autosavePodiumUser()" style="width:100%;font-size:11px"><option value="">--</option>' + teams.map(t => '<option value="' + t + '"' + (pod.third===t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div></div>';
+      let html = '<div style="display:flex;gap:8px;margin-bottom:16px;align-items:flex-end;background:#0A0D16;padding:12px;border-radius:8px;border-left:4px solid var(--lime);opacity:' + (podioAbierto ? '1' : '0.5') + ';"><div style="flex:1"><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">🥇 CAMPEÓN</label><select id="first" onchange="autosavePodiumUser()" style="width:100%;font-size:11px" ' + (podioAbierto ? '' : 'disabled') + '><option value="">--</option>' + teams.map(t => '<option value="' + t + '"' + (pod.first===t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div><div style="flex:1"><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">🥈 SEGUNDO</label><select id="second" onchange="autosavePodiumUser()" style="width:100%;font-size:11px" ' + (podioAbierto ? '' : 'disabled') + '><option value="">--</option>' + teams.map(t => '<option value="' + t + '"' + (pod.second===t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div><div style="flex:1"><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">🥉 TERCERO</label><select id="third" onchange="autosavePodiumUser()" style="width:100%;font-size:11px" ' + (podioAbierto ? '' : 'disabled') + '><option value="">--</option>' + teams.map(t => '<option value="' + t + '"' + (pod.third===t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div></div>';
       html += `<h2>Todos los Partidos (${allMatches.length})</h2>`;
       html += `<div style="margin-bottom:12px;">`;
       html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;">Filtrar por día</label>`;
@@ -510,7 +511,7 @@
         return;
       }
       participantes.forEach(p => {
-        html += `<div class="card"><div style="margin-bottom:12px;"><strong>${p.name}</strong> - <span style="color:var(--lime);">+${p.total} pts</span></div>`;
+        html += `<div class="card"><div style="margin-bottom:12px;"><strong>${p.name}</strong></div>`;
         
         // Apuestas de partidos (todos, no solo terminados)
         const matches = state.matches.filter(m => {
@@ -530,16 +531,16 @@
           const pred = state.preds[p.uid + '::' + m.id];
           if(!pred) return;
           const resultado = m.finished ? `${m.home_score}-${m.away_score}` : '?-?';
-          let status = '', color = '';
+          let status = '', color = '', pts = '';
           if(m.finished) {
             const mh = +m.home_score, ma = +m.away_score, ph = +pred.home, pa = +pred.away;
-            if(ph === mh && pa === ma) { status = '🟢'; color = 'var(--lime)'; }
-            else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) { status = '🟡'; color = 'var(--gold)'; }
-            else { status = '🔴'; color = 'var(--coral)'; }
+            if(ph === mh && pa === ma) { status = '🟢'; color = 'var(--lime)'; pts = ` <strong style="color:var(--lime);">+${scoring.exact} pts</strong>`; }
+            else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) { status = '🟡'; color = 'var(--gold)'; pts = ` <strong style="color:var(--gold);">+${scoring.outcome} pts</strong>`; }
+            else { status = '🔴'; color = 'var(--coral)'; pts = ` <strong style="color:var(--coral);">0 pts</strong>`; }
           } else {
             status = '⏳';
           }
-          html += `<div style="font-size:11px;color:var(--muted);margin-bottom:4px;"><span style="color:${color};">${status}</span> ${m.home} vs ${m.away}: ${pred.home}-${pred.away} (${resultado})</div>`;
+          html += `<div style="font-size:11px;color:var(--muted);margin-bottom:4px;"><span style="color:${color};">${status}</span> ${m.home} vs ${m.away}: ${pred.home}-${pred.away} (${resultado})${pts}</div>`;
         });
         html += `</div>`;
       });
