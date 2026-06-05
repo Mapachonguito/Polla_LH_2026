@@ -325,13 +325,21 @@
         }
       } catch(e) { console.error(e); render(); }
       
-      // Verificar cada segundo si hay cambios en bloqueos de partidos
+      // Verificar cada segundo si hay CAMBIOS en bloqueos de partidos
+      let bloqueoAnterior = {};
       setInterval(() => {
         if(state.me && state.tab === 'partidos') {
-          const hayBloqueados = state.matches.some(m => isLocked(m));
-          if(hayBloqueados) render(); // Re-renderizar si hay partidos bloqueados
+          let cambio = false;
+          state.matches.forEach(m => {
+            const estaBloqueado = isLocked(m);
+            if(bloqueoAnterior[m.id] !== estaBloqueado) {
+              cambio = true;
+              bloqueoAnterior[m.id] = estaBloqueado;
+            }
+          });
+          if(cambio) render(); // Solo re-renderizar si cambió el estado de bloqueo
         }
-      }, 1000);
+      }, 500); // Verificar cada 500ms para ser más rápido
     }
 
     function actualizarReloj() {
