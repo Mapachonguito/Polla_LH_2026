@@ -794,10 +794,22 @@
     window.doAuth = async function() {
       try {
         if(authMode === 'login') {
-          const user = document.getElementById('user').value.toLowerCase().trim();
-          const pw = document.getElementById('pw').value;
+          const userField = document.getElementById('user');
+          const pwField = document.getElementById('pw');
           
-          if(!user || !pw) return alert('Llena todos los campos');
+          if(!userField || !pwField) {
+            console.error('Campos no encontrados', { userField, pwField });
+            return alert('Error: Los campos de login no están visibles. Intenta refrescar la página.');
+          }
+          
+          const user = (userField.value || '').toLowerCase().trim();
+          const pw = (pwField.value || '').trim();
+          
+          console.log('Login - Valores leídos:', { user, pw, userLength: user.length, pwLength: pw.length });
+          
+          if(!user || !pw) {
+            return alert('Llena todos los campos.\n\nCampo usuario: ' + (user ? '✓' : '✗') + '\nCampo contraseña: ' + (pw ? '✓' : '✗'));
+          }
           
           const u = await sb.from('users').select('*').eq('id', user);
           console.log('Login - Usuario buscado:', user, 'Resultado:', u);
