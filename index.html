@@ -786,30 +786,37 @@
       if(!adminName || !adminPw) return alert('Llena todos los campos');
       
       try {
+        // Generar usuario a partir del nombre (minúsculas, sin espacios)
+        const adminUser = adminName.toLowerCase().replace(/\s+/g, '');
+        
         const config = { poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2}, monto_entrada: 15000, moneda: 'CLP', prizes: {first:50, second:25, third:15, perfect:10} };
         
         // Verificar si ya existe una polla
         const existe = await sb.from('config').select('id').eq('id', '1');
         if(existe.data?.length) return alert('⚠️ La polla ya fue creada. No puedes crear otra.');
         
+        // Guardar en Supabase
+        const pwHash = hashPw(adminPw);
         await sb.from('config').insert([{ id: '1', ...config }]);
-        await sb.from('users').insert([{ id: 'admin', displayname: adminName, pw: hashPw(adminPw), role: 'admin', paid: false }]);
+        await sb.from('users').insert([{ id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false }]);
         
+        // Insertar todos los partidos
         for(let i = 0; i < SCHEDULE.length; i++) {
           const x = SCHEDULE[i];
           await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
         }
         
+        // Actualizar estado local
         state.config = config;
-        state.users['admin'] = { id: 'admin', displayname: adminName, pw: hashPw(adminPw), role: 'admin', paid: false };
+        state.users[adminUser] = { id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false };
         state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
-        state.me = 'admin';
+        state.me = adminUser;
         
-        alert(`✅ ¡Polla creada exitosamente!\n\nAdmin: ${adminName}\nPolla: ${poolName}\n\nAhora comparte este link con tus amigos. Ellos verán login/registro, NO crear polla.`);
+        alert(`✅ ¡Polla creada exitosamente!\n\nTu usuario: ${adminUser}\nContraseña: (la que ingresaste)\n\nAhora comparte este link con tus amigos. Ellos verán login/registro, NO crear polla.`);
         render();
       } catch(e) {
         console.error('Error al crear polla:', e);
-        alert('Error: ' + (e.message || 'No se pudo crear la polla'));
+        alert('Error: ' + (e.message || 'No se pudo crear la polla. Intenta de nuevo.'));
       }
     };
 
