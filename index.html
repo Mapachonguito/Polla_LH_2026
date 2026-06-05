@@ -337,7 +337,7 @@
         
         try { cfg = await sb.from('config').select('id, poolname, scoring').limit(1); } catch(e) { console.error('Error config:', e); }
         try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { console.error('Error users:', e); }
-        try { m = await sb.from('matches').select('*'); } catch(e) { console.error('Error matches:', e); }
+        try { m = await sb.from('matches').select('*').order('id', { ascending: true }); } catch(e) { console.error('Error matches:', e); }
         try { p = await sb.from('predictions').select('*'); } catch(e) { console.error('Error predictions:', e); }
         
         console.log('📊 Datos cargados - config:', cfg.data?.length, 'users:', u.data?.length, 'matches:', m.data?.length, 'predictions:', p.data?.length);
