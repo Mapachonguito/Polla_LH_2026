@@ -171,7 +171,14 @@
             console.log('Update result:', updateResult);
           } else {
             console.log('Insertando...');
-            const insertResult = await sb.from('predictions').insert([{userid: state.me, matchid: mid, homescore: +h, awayscore: +a}]);
+            const insertData = {
+              userid: String(state.me),
+              matchid: String(mid),
+              homescore: parseInt(h),
+              awayscore: parseInt(a)
+            };
+            console.log('Insert data:', insertData);
+            const insertResult = await sb.from('predictions').insert([insertData]);
             console.log('Insert result:', insertResult);
           }
         }
