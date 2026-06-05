@@ -788,23 +788,37 @@
       try {
         // Generar usuario a partir del nombre (minúsculas, sin espacios)
         const adminUser = adminName.toLowerCase().replace(/\s+/g, '');
+        console.log('1. Admin user generado:', adminUser);
         
         const config = { poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2}, monto_entrada: 15000, moneda: 'CLP', prizes: {first:50, second:25, third:15, perfect:10} };
+        console.log('2. Config creado:', config);
         
         // Verificar si ya existe una polla
         const existe = await sb.from('config').select('id').eq('id', '1');
+        console.log('3. Verificación de config existente:', existe);
         if(existe.data?.length) return alert('⚠️ La polla ya fue creada. No puedes crear otra.');
         
-        // Guardar en Supabase
-        const pwHash = hashPw(adminPw);
-        await sb.from('config').insert([{ id: '1', ...config }]);
-        await sb.from('users').insert([{ id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false }]);
+        // Guardar CONFIG en Supabase
+        console.log('4. Insertando config...');
+        const configResult = await sb.from('config').insert([{ id: '1', ...config }]);
+        console.log('5. Resultado config:', configResult);
+        if(configResult.error) throw new Error('Config: ' + configResult.error.message);
         
-        // Insertar todos los partidos
+        // Guardar USUARIO en Supabase
+        const pwHash = hashPw(adminPw);
+        console.log('6. Insertando usuario...');
+        const userResult = await sb.from('users').insert([{ id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false }]);
+        console.log('7. Resultado usuario:', userResult);
+        if(userResult.error) throw new Error('User: ' + userResult.error.message);
+        
+        // Insertar PARTIDOS
+        console.log('8. Insertando partidos...');
         for(let i = 0; i < SCHEDULE.length; i++) {
           const x = SCHEDULE[i];
-          await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
+          const matchResult = await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
+          if(matchResult.error) console.error('Error partido', i+1, matchResult.error);
         }
+        console.log('9. Partidos insertados');
         
         // Actualizar estado local
         state.config = config;
@@ -812,11 +826,12 @@
         state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
         state.me = adminUser;
         
-        alert(`✅ ¡Polla creada exitosamente!\n\nTu usuario: ${adminUser}\nContraseña: (la que ingresaste)\n\nAhora comparte este link con tus amigos. Ellos verán login/registro, NO crear polla.`);
+        console.log('10. ✅ TODO GUARDADO CORRECTAMENTE');
+        alert(`✅ ¡Polla creada exitosamente!\n\nTu usuario: ${adminUser}\nContraseña: (la que ingresaste)\n\nAhora comparte este link con tus amigos.`);
         render();
       } catch(e) {
-        console.error('Error al crear polla:', e);
-        alert('Error: ' + (e.message || 'No se pudo crear la polla. Intenta de nuevo.'));
+        console.error('❌ ERROR COMPLETO:', e);
+        alert('❌ Error: ' + (e.message || 'No se pudo crear la polla.\n\nAbre la consola (F12) para ver detalles.'));
       }
     };
 
