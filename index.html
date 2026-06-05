@@ -426,10 +426,8 @@
         saveAllEl.innerHTML = '';
       } else {
         const u = state.users[state.me];
-        console.log('🔍 DEBUG render - state.me:', state.me, 'user object:', u, 'displayname:', u?.displayname);
-        const displayName = u?.displayname || state.me || 'Usuario';
-        console.log('🔍 Final displayName:', displayName);
-        appEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:var(--bg);z-index:100;padding:12px 0;border-bottom:1px solid var(--line);"><div><h1>${state.config.poolName}</h1><p>${displayName} ${u?.role==='admin'?'<span class="badge">ADMIN</span>':''}</p></div><div style="display:flex;gap:12px;align-items:center;"><div id="reloj-chile" style="font-weight:700;font-size:14px;color:var(--lime);font-family:monospace;">--:--:--</div><button onclick="doLogout()" style="width:auto;padding:8px 16px;">Salir</button></div></div><div id="content"></div>`;
+        const displayName = (u && u.displayname) ? u.displayname : (state.me || 'Usuario');
+        appEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:sticky;top:0;background:var(--bg);z-index:100;padding:12px 0;border-bottom:1px solid var(--line);"><div><h1>${state.config?.poolname || 'Polla'}</h1><p>${displayName} ${(u && u.role==='admin')?'<span class="badge">ADMIN</span>':''}</p></div><div style="display:flex;gap:12px;align-items:center;"><div id="reloj-chile" style="font-weight:700;font-size:14px;color:var(--lime);font-family:monospace;">--:--:--</div><button onclick="doLogout()" style="width:auto;padding:8px 16px;">Salir</button></div></div><div id="content"></div>`;
         renderNav();
         actualizarReloj();
         setInterval(actualizarReloj, 1000);
