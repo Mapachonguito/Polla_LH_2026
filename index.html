@@ -302,9 +302,9 @@
       let lastChanged = '';
       
       // Comparar con estado anterior
-      if(state.config.podium_result?.first !== first) lastChanged = 'podio_first';
-      else if(state.config.podium_result?.second !== second) lastChanged = 'podio_second';
-      else if(state.config.podium_result?.third !== third) lastChanged = 'podio_third';
+      if(state.config.podiumresult?.first !== first) lastChanged = 'podio_first';
+      else if(state.config.podiumresult?.second !== second) lastChanged = 'podio_second';
+      else if(state.config.podiumresult?.third !== third) lastChanged = 'podio_third';
       
       // Validar que no se repitan
       if(first && second && first === second) {
@@ -323,11 +323,11 @@
         return;
       }
       
-      state.config.podium_result = { first: first || '', second: second || '', third: third || '' };
+      state.config.podiumresult = { first: first || '', second: second || '', third: third || '' };
       
       try {
-        console.log('Guardando podio real:', state.config.podium_result);
-        const result = await sb.from('config').update({ podium_result: state.config.podium_result }).eq('id', '1');
+        console.log('Guardando podio real:', state.config.podiumresult);
+        const result = await sb.from('config').update({ podiumresult: state.config.podiumresult }).eq('id', '1');
         console.log('Podio real guardado:', result);
       } catch(e) {
         console.error('❌ Error en autosavePodiumAdmin:', e);
@@ -358,17 +358,19 @@
       try {
         let cfg = { data: [] }, u = { data: [] }, m = { data: [] }, p = { data: [] };
         
-        try { cfg = await sb.from('config').select('id, poolname, scoring').limit(1); } catch(e) { console.error('Error config:', e); }
+        try { cfg = await sb.from('config').select('id, poolname, scoring, podiumresult').limit(1); } catch(e) { console.error('Error config:', e); }
         try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { console.error('Error users:', e); }
         try { m = await sb.from('matches').select('*').order('id', { ascending: true }); } catch(e) { console.error('Error matches:', e); }
         try { p = await sb.from('predictions').select('*'); } catch(e) { console.error('Error predictions:', e); }
+        try { pd = await sb.from('podium').select('*'); } catch(e) { console.error('Error podium:', e); }
         
-        console.log('📊 Datos cargados - config:', cfg.data?.length, 'users:', u.data?.length, 'matches:', m.data?.length, 'predictions:', p.data?.length);
+        console.log('📊 Datos cargados - config:', cfg.data?.length, 'users:', u.data?.length, 'matches:', m.data?.length, 'predictions:', p.data?.length, 'podium:', pd.data?.length);
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
         (u.data || []).forEach(x => state.users[x.id] = x);
         (m.data || []).forEach(x => state.matches.push(x));
         (p.data || []).forEach(x => state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore });
+        (pd.data || []).forEach(x => state.podium[x.userid] = { first: x.first, second: x.second, third: x.third });
         
         // Cargar sesión guardada desde localStorage
         const savedUser = localStorage.getItem('polla_user');
