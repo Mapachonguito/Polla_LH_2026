@@ -780,33 +780,53 @@
     };
     
     window.doAuth = async function() {
-      if(authMode === 'login') {
-        const user = document.getElementById('user').value.toLowerCase();
-        const pw = document.getElementById('pw').value;
-        
-        if(!user || !pw) return alert('Llena todos los campos');
-        const u = await sb.from('users').select('*').eq('id', user);
-        if(!u.data?.length || u.data[0].pw !== hashPw(pw)) return alert('Usuario o contraseña incorrecto');
-        state.users[user] = u.data[0];
-        state.me = user;
-      } else {
-        const name = document.getElementById('name').value;
-        const pw = document.getElementById('pw_reg').value;
-        
-        if(!name || !pw) return alert('Llena todos los campos');
-        
-        // Generar usuario automático basado en nombre (sin espacios, minúsculas)
-        const user = name.toLowerCase().replace(/\s+/g, '');
-        
-        // Verificar que no exista
-        const exists = await sb.from('users').select('*').eq('id', user);
-        if(exists.data?.length) return alert('Este nombre ya está registrado. Usa otro nombre.');
-        
-        await sb.from('users').insert([{ id: user, displayName: name, pw: hashPw(pw), role: 'participant', paid: false }]);
-        state.users[user] = { id: user, displayName: name, pw: hashPw(pw), role: 'participant', paid: false };
-        state.me = user;
+      try {
+        if(authMode === 'login') {
+          const user = document.getElementById('user').value.toLowerCase().trim();
+          const pw = document.getElementById('pw').value;
+          
+          if(!user || !pw) return alert('Llena todos los campos');
+          
+          const u = await sb.from('users').select('*').eq('id', user);
+          console.log('Login - Usuario buscado:', user, 'Resultado:', u);
+          
+          if(!u.data?.length) return alert(`Usuario "${user}" no encontrado. ¿Está seguro que se registró?`);
+          if(u.data[0].pw !== hashPw(pw)) return alert('Contraseña incorrecta');
+          
+          state.users[user] = u.data[0];
+          state.me = user;
+        } else {
+          const name = document.getElementById('name').value.trim();
+          const pw = document.getElementById('pw_reg').value;
+          
+          if(!name || !pw) return alert('Llena todos los campos');
+          
+          // Generar usuario automático basado en nombre (sin espacios, minúsculas)
+          const user = name.toLowerCase().replace(/\s+/g, '');
+          
+          console.log('Registro - Nombre:', name, 'Usuario generado:', user);
+          
+          // Verificar que no exista
+          const exists = await sb.from('users').select('*').eq('id', user);
+          if(exists.data?.length) return alert('Este nombre ya está registrado. Usa otro nombre.');
+          
+          const result = await sb.from('users').insert([{ id: user, displayName: name, pw: hashPw(pw), role: 'participant', paid: false }]);
+          console.log('Registro - Resultado:', result);
+          
+          if(result.error) {
+            alert('Error al registrar: ' + result.error.message);
+            return;
+          }
+          
+          state.users[user] = { id: user, displayName: name, pw: hashPw(pw), role: 'participant', paid: false };
+          state.me = user;
+          alert('✓ Registrado correctamente como: ' + user);
+        }
+        render();
+      } catch(e) {
+        console.error('Error en doAuth:', e);
+        alert('Error: ' + e.message);
       }
-      render();
     };
 
     window.doLogout = function() { state.me = null; state.tab = 'partidos'; state.selectedDay = null; state.pendingSaves = {}; render(); };
