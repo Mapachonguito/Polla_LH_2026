@@ -475,6 +475,7 @@
           const diaPartido = new Date(m.datetime);
           if(fechaInicio) {
             const inicio = new Date(fechaInicio);
+            inicio.setHours(0,0,0,0);
             if(diaPartido < inicio) return false;
           }
           if(fechaFin) {
@@ -518,6 +519,7 @@
           const diaPartido = new Date(m.datetime);
           if(fechaInicio) {
             const inicio = new Date(fechaInicio);
+            inicio.setHours(0,0,0,0);
             if(diaPartido < inicio) return false;
           }
           if(fechaFin) {
