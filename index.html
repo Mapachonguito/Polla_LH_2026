@@ -860,6 +860,11 @@
     
     window.doAuth = async function() {
       try {
+        // Validar que authMode sea válido
+        if(!['login', 'reg'].includes(authMode)) {
+          return alert('Error: Modo de autenticación inválido. Recarga la página.');
+        }
+        
         if(authMode === 'login') {
           const userField = document.getElementById('user');
           const pwField = document.getElementById('pw');
@@ -887,8 +892,15 @@
           state.users[user] = u.data[0];
           state.me = user;
         } else {
-          const name = document.getElementById('name').value.trim();
-          const pw = document.getElementById('pw_reg').value;
+          const nameField = document.getElementById('name');
+          const pwRegField = document.getElementById('pw_reg');
+          
+          if(!nameField || !pwRegField) {
+            return alert('Error: Los campos no están visibles. Intenta de nuevo.');
+          }
+          
+          const name = (nameField.value || '').trim();
+          const pw = (pwRegField.value || '').trim();
           
           if(!name || !pw) return alert('Llena todos los campos');
           
