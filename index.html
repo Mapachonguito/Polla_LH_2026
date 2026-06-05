@@ -156,9 +156,9 @@
         state.preds[state.me + '::' + mid] = {home: +h, away: +a};
         const exist = await sb.from('predictions').select('*').eq('userId', state.me).eq('matchId', mid);
         if(exist.data?.length) {
-          await sb.from('predictions').update({homeScore: +h, awayScore: +a}).eq('userId', state.me).eq('matchId', mid);
+          await sb.from('predictions').update({home_score: +h, away_score: +a}).eq('userId', state.me).eq('matchId', mid);
         } else {
-          await sb.from('predictions').insert([{userId: state.me, matchId: mid, homeScore: +h, awayScore: +a}]);
+          await sb.from('predictions').insert([{userId: state.me, matchId: mid, home_score: +h, away_score: +a}]);
         }
       }
     };
@@ -235,12 +235,12 @@
         document.getElementById('res_a_' + mid).value = '';
       }
       
-      m.homeScore = homeVal;
-      m.awayScore = awayVal;
+      m.home_score = homeVal;
+      m.away_score = awayVal;
       // Automático: si hay resultado → finished: true, si no → finished: false
       m.finished = homeVal !== '' && awayVal !== '';
       
-      await sb.from('matches').update({ homeScore: m.homeScore, awayScore: m.awayScore, finished: m.finished }).eq('id', mid);
+      await sb.from('matches').update({ home_score: m.home_score, away_score: m.away_score, finished: m.finished }).eq('id', mid);
     };
 
     window.autosavePodiumAdmin = async function() {
@@ -252,9 +252,9 @@
       let lastChanged = '';
       
       // Comparar con estado anterior
-      if(state.config.podiumResult?.first !== first) lastChanged = 'podio_first';
-      else if(state.config.podiumResult?.second !== second) lastChanged = 'podio_second';
-      else if(state.config.podiumResult?.third !== third) lastChanged = 'podio_third';
+      if(state.config.podium_result?.first !== first) lastChanged = 'podio_first';
+      else if(state.config.podium_result?.second !== second) lastChanged = 'podio_second';
+      else if(state.config.podium_result?.third !== third) lastChanged = 'podio_third';
       
       // Validar que no se repitan
       if(first && second && first === second) {
@@ -273,8 +273,8 @@
         return;
       }
       
-      state.config.podiumResult = { first: first || '', second: second || '', third: third || '' };
-      await sb.from('config').update({ podiumResult: state.config.podiumResult }).eq('id', '1');
+      state.config.podium_result = { first: first || '', second: second || '', third: third || '' };
+      await sb.from('config').update({ podium_result: state.config.podium_result }).eq('id', '1');
     };
 
     window.togglePodioAbierto = async function() {
@@ -283,13 +283,13 @@
       const second = document.getElementById('podio_second')?.value;
       const third = document.getElementById('podio_third')?.value;
       
-      state.config.podiumResult = { first: first || '', second: second || '', third: third || '' };
+      state.config.podium_result = { first: first || '', second: second || '', third: third || '' };
       state.config.podioAbierto = state.config?.podioAbierto !== false ? false : true;
       
       // Guardar ambos cambios
       await sb.from('config').update({ 
         podioAbierto: state.config.podioAbierto,
-        podiumResult: state.config.podiumResult
+        podium_result: state.config.podium_result
       }).eq('id', '1');
       render();
     };
@@ -309,16 +309,16 @@
         state.config = cfg.data?.length ? cfg.data[0] : null;
         (u.data || []).forEach(x => state.users[x.id] = x);
         (m.data || []).forEach(x => state.matches.push(x));
-        (p.data || []).forEach(x => state.preds[x.userId + '::' + x.matchId] = { home: x.homeScore, away: x.awayScore });
+        (p.data || []).forEach(x => state.preds[x.userId + '::' + x.matchId] = { home: x.home_score, away: x.away_score });
         
         if(!state.config) {
           render();
         } else if(!state.matches.length) {
           for(let i = 0; i < SCHEDULE.length; i++) {
             const x = SCHEDULE[i];
-            await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homeScore: '', awayScore: '', finished: false }]);
+            await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
           }
-          state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homeScore: '', awayScore: '', finished: false }));
+          state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
           render();
         } else {
           render();
@@ -389,7 +389,7 @@
         saveAllEl.innerHTML = '';
       } else {
         const u = state.users[state.me];
-        appEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div><h1>${state.config.poolName}</h1><p>${u.displayName} ${u.role==='admin'?'<span class="badge">ADMIN</span>':''}</p></div><button onclick="doLogout()" style="width:auto;padding:8px 16px;">Salir</button></div><div id="content"></div>`;
+        appEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div><h1>${state.config.poolName}</h1><p>${u.display_name} ${u.role==='admin'?'<span class="badge">ADMIN</span>':''}</p></div><button onclick="doLogout()" style="width:auto;padding:8px 16px;">Salir</button></div><div id="content"></div>`;
         renderNav();
         const content = document.getElementById('content');
         if(state.tab === 'partidos') renderPartidos(content);
@@ -446,7 +446,7 @@
 
     function renderResumen(el) {
       const scoring = state.config.scoring || { exact: 5, outcome: 2, champion: 10, second: 5, third: 2 };
-      const podiumReal = state.config.podiumResult || {};
+      const podiumReal = state.config.podium_result || {};
       
       // Filtro de fechas (rango)
       const fechas = [...new Set(state.matches.map(m => getDay(m.datetime)))];
@@ -485,12 +485,12 @@
         }).forEach(m => {
           const p = state.preds[uid + '::' + m.id];
           if(!p) return;
-          const mh = +m.homeScore, ma = +m.awayScore, ph = +p.home, pa = +p.away;
+          const mh = +m.home_score, ma = +m.away_score, ph = +p.home, pa = +p.away;
           if(ph === mh && pa === ma) ptsPartidos += scoring.exact;
           else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) ptsPartidos += scoring.outcome;
         });
         
-        return { uid, name: u.displayName, ptsPartidos, ptsPodia, total: ptsPartidos + ptsPodia };
+        return { uid, name: u.display_name, ptsPartidos, ptsPodia, total: ptsPartidos + ptsPodia };
       }).sort((a,b) => b.total - a.total);
       
       // Tabla top 3 con países apostados
@@ -529,10 +529,10 @@
         matches.forEach(m => {
           const pred = state.preds[p.uid + '::' + m.id];
           if(!pred) return;
-          const resultado = m.finished ? `${m.homeScore}-${m.awayScore}` : '?-?';
+          const resultado = m.finished ? `${m.home_score}-${m.away_score}` : '?-?';
           let status = '', color = '';
           if(m.finished) {
-            const mh = +m.homeScore, ma = +m.awayScore, ph = +pred.home, pa = +pred.away;
+            const mh = +m.home_score, ma = +m.away_score, ph = +pred.home, pa = +pred.away;
             if(ph === mh && pa === ma) { status = '🟢'; color = 'var(--lime)'; }
             else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) { status = '🟡'; color = 'var(--gold)'; }
             else { status = '🔴'; color = 'var(--coral)'; }
@@ -582,11 +582,11 @@
     }
 
     function renderTabla(el) {
-      const monto = state.config.montoEntrada || 15000;
+      const monto = state.config.monto_entrada || 15000;
       const currency = state.config.moneda || 'CLP';
       const prizes = state.config.prizes || { first: 50, second: 25, third: 15, perfect: 10 };
       const scoring = state.config.scoring || { exact: 5, outcome: 2, champion: 10, second: 5, third: 2 };
-      const podiumReal = state.config.podiumResult || {};
+      const podiumReal = state.config.podium_result || {};
       const paidCount = Object.values(state.users).filter(u => u.paid).length;
       const pozo = paidCount * monto;
       
@@ -612,8 +612,8 @@
           const m = state.matches.find(x => x.id === mid);
           if(!m || !m.finished) return; // Solo partidos terminados
           
-          const mh = +m.homeScore;
-          const ma = +m.awayScore;
+          const mh = +m.home_score;
+          const ma = +m.away_score;
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           
@@ -628,7 +628,7 @@
           if(state.podium[uid].third === podiumReal.third) bonoMundial += scoring.third;
         }
         
-        return { uid, name: u.displayName, pts, bonoMundial, total: pts + bonoMundial };
+        return { uid, name: u.display_name, pts, bonoMundial, total: pts + bonoMundial };
       }).sort((a,b) => b.total - a.total);
       
       html += `<div style="overflow-x:auto;">`;
@@ -640,8 +640,8 @@
           const mid = k.split('::')[1];
           const m = state.matches.find(x => x.id === mid);
           if(!m || !m.finished) return false;
-          const mh = +m.homeScore;
-          const ma = +m.awayScore;
+          const mh = +m.home_score;
+          const ma = +m.away_score;
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           return ph === mh && pa === ma;
@@ -652,8 +652,8 @@
           const mid = k.split('::')[1];
           const m = state.matches.find(x => x.id === mid);
           if(!m || !m.finished) return false;
-          const mh = +m.homeScore;
-          const ma = +m.awayScore;
+          const mh = +m.home_score;
+          const ma = +m.away_score;
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           return (ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma);
@@ -681,9 +681,9 @@
       
       html += `<div class="admin-section"><h3>🏆 Resultado Final del Podio</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Edita los ganadores reales cuando se determinen</p>`;
       html += `<div style="background:#0A0D16;padding:12px;border-radius:6px;margin-bottom:12px;">`;
-      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">🥇 Campeón</label><select id="podio_first" style="width:100%;margin-bottom:12px;" onchange="autosavePodiumAdmin()"><option value="">-- Sin definir --</option>${teams.map(t=>`<option value="${t}" ${state.config?.podiumResult?.first === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
-      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">🥈 Subcampeón</label><select id="podio_second" style="width:100%;margin-bottom:12px;" onchange="autosavePodiumAdmin()"><option value="">-- Sin definir --</option>${teams.map(t=>`<option value="${t}" ${state.config?.podiumResult?.second === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
-      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">🥉 Tercer Lugar</label><select id="podio_third" style="width:100%;" onchange="autosavePodiumAdmin()"><option value="">-- Sin definir --</option>${teams.map(t=>`<option value="${t}" ${state.config?.podiumResult?.third === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">🥇 Campeón</label><select id="podio_first" style="width:100%;margin-bottom:12px;" onchange="autosavePodiumAdmin()"><option value="">-- Sin definir --</option>${teams.map(t=>`<option value="${t}" ${state.config?.podium_result?.first === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">🥈 Subcampeón</label><select id="podio_second" style="width:100%;margin-bottom:12px;" onchange="autosavePodiumAdmin()"><option value="">-- Sin definir --</option>${teams.map(t=>`<option value="${t}" ${state.config?.podium_result?.second === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">🥉 Tercer Lugar</label><select id="podio_third" style="width:100%;" onchange="autosavePodiumAdmin()"><option value="">-- Sin definir --</option>${teams.map(t=>`<option value="${t}" ${state.config?.podium_result?.third === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
       html += `</div></div>`;
       
       html += `<div class="admin-section"><h3>🔒 Control de Apuestas de Podio</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Abre o cierra las apuestas del podio</p>`;
@@ -730,7 +730,7 @@
         const isMe = uid === state.me;
         const badge = isMe ? ' 👑' : '';
         html += `<div style="display:flex;justify-content:space-between;align-items:center;background:#0A0D16;padding:12px;border-radius:6px;border-left:4px solid ${u.paid ? 'var(--lime)' : 'var(--coral)'};">`;
-        html += `<div><div style="font-weight:700;font-size:13px;">${u.displayName}${badge}</div></div>`;
+        html += `<div><div style="font-weight:700;font-size:13px;">${u.display_name}${badge}</div></div>`;
         html += `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">`;
         html += `<button onclick="togglePaid('${uid}')" style="width:120px;padding:8px;font-size:12px;${u.paid?'background:var(--lime);color:var(--bg);':'background:#1C2438;'}">${u.paid?'✓ PAGÓ':'Marcar pagado'}</button>`;
         html += `<button onclick="showPassword('${uid}')" style="width:100px;padding:8px;font-size:12px;background:#FFC93C;color:var(--bg);">🔑 Contraseña</button>`;
@@ -742,7 +742,7 @@
       
       html += `<div class="admin-section"><h3>Editar Resultados (${state.matches.length} partidos)</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Los cambios se guardan automáticamente</p>`;
       state.matches.forEach(m => {
-        html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:#0A0D16;border-radius:6px;"><span style="flex:1;font-size:12px;">${m.home} vs ${m.away}</span><input type="number" id="res_h_${m.id}" value="${m.homeScore||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"><span>:</span><input type="number" id="res_a_${m.id}" value="${m.awayScore||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"></div>`;
+        html += `<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:#0A0D16;border-radius:6px;"><span style="flex:1;font-size:12px;">${m.home} vs ${m.away}</span><input type="number" id="res_h_${m.id}" value="${m.home_score||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"><span>:</span><input type="number" id="res_a_${m.id}" value="${m.away_score||''}" placeholder="0" onchange="autosaveResult('${m.id}')" style="width:50px;margin:0;"></div>`;
       });
       html += `</div>`;
       
@@ -756,18 +756,18 @@
       const adminPw = document.getElementById('adminPw').value;
       if(!adminName || !adminPw) return alert('Llena todos los campos');
       
-      const config = { poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2}, montoEntrada: 15000, moneda: 'CLP', prizes: {first:50, second:25, third:15, perfect:10} };
+      const config = { poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2}, monto_entrada: 15000, moneda: 'CLP', prizes: {first:50, second:25, third:15, perfect:10} };
       await sb.from('config').insert([{ id: '1', ...config }]);
-      await sb.from('users').insert([{ id: 'admin', displayName: adminName, pw: hashPw(adminPw), role: 'admin', paid: false }]);
+      await sb.from('users').insert([{ id: 'admin', display_name: adminName, pw: hashPw(adminPw), role: 'admin', paid: false }]);
       
       for(let i = 0; i < SCHEDULE.length; i++) {
         const x = SCHEDULE[i];
-        await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homeScore: '', awayScore: '', finished: false }]);
+        await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
       }
       
       state.config = config;
-      state.users['admin'] = { id: 'admin', displayName: adminName, pw: hashPw(adminPw), role: 'admin', paid: false };
-      state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homeScore: '', awayScore: '', finished: false }));
+      state.users['admin'] = { id: 'admin', display_name: adminName, pw: hashPw(adminPw), role: 'admin', paid: false };
+      state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
       state.me = 'admin';
       render();
     };
@@ -822,7 +822,7 @@
           const exists = await sb.from('users').select('*').eq('id', user);
           if(exists.data?.length) return alert('Este nombre ya está registrado. Usa otro nombre.');
           
-          const result = await sb.from('users').insert([{ id: user, displayName: name, pw: hashPw(pw), role: 'participant', paid: false }]);
+          const result = await sb.from('users').insert([{ id: user, display_name: name, pw: hashPw(pw), role: 'participant', paid: false }]);
           console.log('Registro - Resultado:', result);
           
           if(result.error) {
@@ -830,7 +830,7 @@
             return;
           }
           
-          state.users[user] = { id: user, displayName: name, pw: hashPw(pw), role: 'participant', paid: false };
+          state.users[user] = { id: user, display_name: name, pw: hashPw(pw), role: 'participant', paid: false };
           state.me = user;
           alert('✓ Registrado correctamente como: ' + user);
         }
@@ -872,9 +872,9 @@
           const key = state.me + '::' + m.id;
           
           if(exist.data?.length) {
-            await sb.from('predictions').update({ homeScore: +h, awayScore: +a }).eq('id', exist.data[0].id);
+            await sb.from('predictions').update({ home_score: +h, away_score: +a }).eq('id', exist.data[0].id);
           } else {
-            await sb.from('predictions').insert([{ id: Date.now() + saved + '', userId: state.me, matchId: m.id, homeScore: +h, awayScore: +a }]);
+            await sb.from('predictions').insert([{ id: Date.now() + saved + '', userId: state.me, matchId: m.id, home_score: +h, away_score: +a }]);
           }
           
           state.preds[key] = { home: +h, away: +a };
@@ -914,11 +914,11 @@
       
       u.pw = hashPw(newPw);
       sb.from('users').update({ pw: u.pw }).eq('id', uid);
-      alert(`✓ Contraseña de ${u.displayName} reseteada a: "${newPw}"`);
+      alert(`✓ Contraseña de ${u.display_name} reseteada a: "${newPw}"`);
     };
 
     window.deleteParticipant = async function(uid) {
-      if(!confirm(`¿Eliminar a ${state.users[uid].displayName}? Podrá volver a registrarse si lo desea.`)) return;
+      if(!confirm(`¿Eliminar a ${state.users[uid].display_name}? Podrá volver a registrarse si lo desea.`)) return;
       try {
         await sb.from('users').delete().eq('id', uid);
         delete state.users[uid];
@@ -927,7 +927,7 @@
           if(k.startsWith(uid + '::')) delete state.preds[k];
         });
         await sb.from('predictions').delete().eq('userId', uid);
-        alert(`✓ ${state.users[uid] ? state.users[uid].displayName : 'Participante'} eliminado`);
+        alert(`✓ ${state.users[uid] ? state.users[uid].display_name : 'Participante'} eliminado`);
         render();
       } catch(e) {
         console.error(e);
@@ -943,11 +943,11 @@
         const fin = document.getElementById(`fin_${m.id}`)?.checked;
         
         if(h !== undefined || a !== undefined || fin !== undefined) {
-          m.homeScore = h;
-          m.awayScore = a;
+          m.home_score = h;
+          m.away_score = a;
           m.finished = fin;
           
-          await sb.from('matches').update({ homeScore: h, awayScore: a, finished: fin }).eq('id', m.id);
+          await sb.from('matches').update({ home_score: h, away_score: a, finished: fin }).eq('id', m.id);
           saved++;
         }
       }
@@ -967,9 +967,9 @@
       const podio_third = document.getElementById('podio_third').value;
       
       state.config.scoring = { exact, outcome, champion, second, third };
-      state.config.podiumResult = { first: podio_first, second: podio_second, third: podio_third };
+      state.config.podium_result = { first: podio_first, second: podio_second, third: podio_third };
       
-      await sb.from('config').update({ scoring: state.config.scoring, podiumResult: state.config.podiumResult }).eq('id', '1');
+      await sb.from('config').update({ scoring: state.config.scoring, podium_result: state.config.podium_result }).eq('id', '1');
       
       let saved = 0;
       for(const m of state.matches) {
@@ -978,11 +978,11 @@
         const fin = document.getElementById(`fin_${m.id}`)?.checked;
         
         if(h !== undefined || a !== undefined || fin !== undefined) {
-          m.homeScore = h;
-          m.awayScore = a;
+          m.home_score = h;
+          m.away_score = a;
           m.finished = fin;
           
-          await sb.from('matches').update({ homeScore: h, awayScore: a, finished: fin }).eq('id', m.id);
+          await sb.from('matches').update({ home_score: h, away_score: a, finished: fin }).eq('id', m.id);
           saved++;
         }
       }
@@ -1017,12 +1017,12 @@
         away, 
         group_name: phase, 
         datetime, 
-        homeScore: '', 
-        awayScore: '', 
+        home_score: '', 
+        away_score: '', 
         finished: false 
       }]);
       
-      state.matches.push({ id: newId, home, away, group_name: phase, datetime, homeScore: '', awayScore: '', finished: false });
+      state.matches.push({ id: newId, home, away, group_name: phase, datetime, home_score: '', away_score: '', finished: false });
       
       document.getElementById('new_home').value = '';
       document.getElementById('new_away').value = '';
@@ -1039,11 +1039,11 @@
       const a = document.getElementById(`res_a_${mid}`)?.value;
       const fin = document.getElementById(`fin_${mid}`)?.checked;
       
-      m.homeScore = h;
-      m.awayScore = a;
+      m.home_score = h;
+      m.away_score = a;
       m.finished = fin;
       
-      await sb.from('matches').update({ homeScore: h, awayScore: a, finished: fin }).eq('id', mid);
+      await sb.from('matches').update({ home_score: h, away_score: a, finished: fin }).eq('id', mid);
       alert('✓ Resultado guardado');
       render();
     };
