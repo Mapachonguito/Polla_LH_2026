@@ -774,9 +774,21 @@
 
     let authMode = 'login';
     window.setMode = function(m) { 
-      authMode = m; 
+      authMode = m;
+      // Limpiar campos
+      document.getElementById('user').value = '';
+      document.getElementById('pw').value = '';
+      document.getElementById('name').value = '';
+      document.getElementById('pw_reg').value = '';
+      
+      // Mostrar/ocultar campos
       document.getElementById('loginFields')?.classList.toggle('hidden', m==='reg');
-      document.getElementById('regFields')?.classList.toggle('hidden', m==='login'); 
+      document.getElementById('regFields')?.classList.toggle('hidden', m==='login');
+      
+      // Cambiar botón activo
+      document.querySelectorAll('.login-buttons button').forEach((btn, i) => {
+        btn.classList.toggle('active', (i === 0 && m === 'login') || (i === 1 && m === 'reg'));
+      });
     };
     
     window.doAuth = async function() {
