@@ -346,7 +346,18 @@
             <h1 style="font-size:32px;margin-bottom:8px;">POLLA MUNDIAL 2026</h1>
             <p>Mundial 2026 · pronósticos entre amigos</p>
           </div>
-          <div class="card"><h2>Crear la polla</h2><input type="text" id="poolName" placeholder="Nombre de la polla" value="Polla Mundial 2026"><input type="text" id="adminName" placeholder="Tu nombre"><input type="password" id="adminPw" placeholder="Tu contraseña"><button onclick="createPool()">Crear</button></div>
+          <div class="card">
+            <h2>⚠️ Polla no creada</h2>
+            <p style="margin-bottom:16px;font-size:13px;">Solo el ADMIN puede crear la polla. Si eres el admin, completa los datos abajo. Si no, espera a que el admin comparta el link nuevamente.</p>
+            <div id="poolCreation" style="display:none;">
+              <h3 style="color:var(--lime);margin-bottom:10px;font-size:14px;">Crear la polla</h3>
+              <input type="text" id="poolName" placeholder="Nombre de la polla" value="Polla Mundial 2026">
+              <input type="text" id="adminName" placeholder="Tu nombre">
+              <input type="password" id="adminPw" placeholder="Tu contraseña">
+              <button onclick="createPool()">Crear Polla</button>
+            </div>
+            <button onclick="document.getElementById('poolCreation').style.display=document.getElementById('poolCreation').style.display==='none'?'block':'none'" style="background:#1C2438;color:var(--text);">¿Eres el ADMIN?</button>
+          </div>
         `;
         navEl.innerHTML = '';
         saveAllEl.innerHTML = '';
