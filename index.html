@@ -785,20 +785,32 @@
       const adminPw = document.getElementById('adminPw').value;
       if(!adminName || !adminPw) return alert('Llena todos los campos');
       
-      const config = { poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2}, monto_entrada: 15000, moneda: 'CLP', prizes: {first:50, second:25, third:15, perfect:10} };
-      await sb.from('config').insert([{ id: '1', ...config }]);
-      await sb.from('users').insert([{ id: 'admin', displayname: adminName, pw: hashPw(adminPw), role: 'admin', paid: false }]);
-      
-      for(let i = 0; i < SCHEDULE.length; i++) {
-        const x = SCHEDULE[i];
-        await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
+      try {
+        const config = { poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2}, monto_entrada: 15000, moneda: 'CLP', prizes: {first:50, second:25, third:15, perfect:10} };
+        
+        // Verificar si ya existe una polla
+        const existe = await sb.from('config').select('id').eq('id', '1');
+        if(existe.data?.length) return alert('⚠️ La polla ya fue creada. No puedes crear otra.');
+        
+        await sb.from('config').insert([{ id: '1', ...config }]);
+        await sb.from('users').insert([{ id: 'admin', displayname: adminName, pw: hashPw(adminPw), role: 'admin', paid: false }]);
+        
+        for(let i = 0; i < SCHEDULE.length; i++) {
+          const x = SCHEDULE[i];
+          await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
+        }
+        
+        state.config = config;
+        state.users['admin'] = { id: 'admin', displayname: adminName, pw: hashPw(adminPw), role: 'admin', paid: false };
+        state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
+        state.me = 'admin';
+        
+        alert(`✅ ¡Polla creada exitosamente!\n\nAdmin: ${adminName}\nPolla: ${poolName}\n\nAhora comparte este link con tus amigos. Ellos verán login/registro, NO crear polla.`);
+        render();
+      } catch(e) {
+        console.error('Error al crear polla:', e);
+        alert('Error: ' + (e.message || 'No se pudo crear la polla'));
       }
-      
-      state.config = config;
-      state.users['admin'] = { id: 'admin', displayname: adminName, pw: hashPw(adminPw), role: 'admin', paid: false };
-      state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }));
-      state.me = 'admin';
-      render();
     };
 
     let authMode = 'login';
