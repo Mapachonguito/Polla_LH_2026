@@ -302,12 +302,10 @@
     async function init() {
       appEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Cargando...</div>';
       try {
-        const [cfg, u, m, p] = await Promise.all([
-          sb.from('config').select('*').limit(1),
-          sb.from('users').select('*'),
-          sb.from('matches').select('*'),
-          sb.from('predictions').select('*')
-        ]);
+        const cfg = await sb.from('config').select('*').limit(1).catch(e => { console.error('Error cargando config:', e); return { data: [] }; });
+        const u = await sb.from('users').select('*').catch(e => { console.error('Error cargando users:', e); return { data: [] }; });
+        const m = await sb.from('matches').select('*').catch(e => { console.error('Error cargando matches:', e); return { data: [] }; });
+        const p = await sb.from('predictions').select('*').catch(e => { console.error('Error cargando predictions:', e); return { data: [] }; });
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
         (u.data || []).forEach(x => state.users[x.id] = x);
@@ -324,6 +322,7 @@
         if(!state.config) {
           render();
         } else if(!state.matches.length) {
+          console.log('⚠️ No hay partidos, insertando 72...');
           for(let i = 0; i < SCHEDULE.length; i++) {
             const x = SCHEDULE[i];
             await sb.from('matches').insert([{ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], home_score: '', away_score: '', finished: false }]);
@@ -333,7 +332,10 @@
         } else {
           render();
         }
-      } catch(e) { console.error(e); render(); }
+      } catch(e) { 
+        console.error('❌ Error crítico en init:', e); 
+        render(); 
+      }
       
       // Verificar cada segundo si hay CAMBIOS en bloqueos de partidos
       let bloqueoAnterior = {};
