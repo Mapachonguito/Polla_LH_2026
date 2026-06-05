@@ -236,10 +236,14 @@
     };
 
     window.autosaveResult = async function(mid) {
+      console.log('📝 autosaveResult - matchid:', mid);
       const m = state.matches.find(x => x.id === mid);
-      if(!m) return;
+      if(!m) return console.error('Match no encontrado:', mid);
+      
       let homeVal = document.getElementById('res_h_' + mid)?.value || '';
       let awayVal = document.getElementById('res_a_' + mid)?.value || '';
+      
+      console.log('Valores leídos - home:', homeVal, 'away:', awayVal);
       
       // Limpiar valores: "00" → "0", "01" → "1", etc.
       if(homeVal) homeVal = String(parseInt(homeVal));
@@ -264,7 +268,13 @@
       // Automático: si hay resultado → finished: true, si no → finished: false
       m.finished = homeVal !== '' && awayVal !== '';
       
-      await sb.from('matches').update({ homescore: m.homescore, awayscore: m.awayscore, finished: m.finished }).eq('id', mid);
+      try {
+        console.log('Guardando resultado:', { homescore: m.homescore, awayscore: m.awayscore, finished: m.finished });
+        const result = await sb.from('matches').update({ homescore: m.homescore, awayscore: m.awayscore, finished: m.finished }).eq('id', mid);
+        console.log('Resultado guardado:', result);
+      } catch(e) {
+        console.error('❌ Error en autosaveResult:', e);
+      }
     };
 
     window.autosavePodiumAdmin = async function() {
