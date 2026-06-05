@@ -314,6 +314,13 @@
         (m.data || []).forEach(x => state.matches.push(x));
         (p.data || []).forEach(x => state.preds[x.userId + '::' + x.matchId] = { home: x.home_score, away: x.away_score });
         
+        // Cargar sesión guardada desde localStorage
+        const savedUser = localStorage.getItem('polla_user');
+        if(savedUser && state.users[savedUser]) {
+          state.me = savedUser;
+          console.log('✓ Sesión restaurada:', savedUser);
+        }
+        
         if(!state.config) {
           render();
         } else if(!state.matches.length) {
@@ -891,6 +898,7 @@
           
           state.users[user] = u.data[0];
           state.me = user;
+          localStorage.setItem('polla_user', user);
         } else {
           const nameField = document.getElementById('name');
           const pwRegField = document.getElementById('pw_reg');
@@ -923,6 +931,7 @@
           
           state.users[user] = { id: user, displayname: name, pw: hashPw(pw), role: 'participant', paid: false };
           state.me = user;
+          localStorage.setItem('polla_user', user);
           alert('✓ Registrado correctamente como: ' + user);
         }
         render();
@@ -932,7 +941,14 @@
       }
     };
 
-    window.doLogout = function() { state.me = null; state.tab = 'partidos'; state.selectedDay = null; state.pendingSaves = {}; render(); };
+    window.doLogout = function() { 
+      state.me = null; 
+      state.tab = 'partidos'; 
+      state.selectedDay = null; 
+      state.pendingSaves = {}; 
+      localStorage.removeItem('polla_user');
+      render(); 
+    };
     window.setTab = function(t) { state.tab = t; state.selectedDay = null; render(); };
     
     // Swipe detection
