@@ -327,12 +327,19 @@
     }
 
     function actualizarReloj() {
-      // Hora en Chile (GMT-3)
       const ahora = new Date();
-      const horaChile = new Date(ahora.toLocaleString('es-CL', { timeZone: 'America/Santiago' }));
-      const h = String(horaChile.getHours()).padStart(2, '0');
-      const m = String(horaChile.getMinutes()).padStart(2, '0');
-      const s = String(horaChile.getSeconds()).padStart(2, '0');
+      // Mismo cálculo que isLocked usa internamente para ser 100% sincronizado
+      const formatter = new Intl.DateTimeFormat('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'America/Santiago'
+      });
+      const partes = formatter.formatToParts(ahora);
+      const h = partes.find(p => p.type === 'hour').value;
+      const m = partes.find(p => p.type === 'minute').value;
+      const s = partes.find(p => p.type === 'second').value;
       const relojEl = document.getElementById('reloj-chile');
       if(relojEl) relojEl.textContent = `🕐 ${h}:${m}:${s}`;
     }
