@@ -154,14 +154,14 @@
       
       if(!h && !a) {
         delete state.preds[state.me + '::' + mid];
-        await sb.from('predictions').delete().eq('userId', state.me).eq('matchId', mid);
+        await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
       } else if(h && a) {
         state.preds[state.me + '::' + mid] = {home: +h, away: +a};
-        const exist = await sb.from('predictions').select('*').eq('userId', state.me).eq('matchId', mid);
+        const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
         if(exist.data?.length) {
-          await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userId', state.me).eq('matchId', mid);
+          await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
         } else {
-          await sb.from('predictions').insert([{userId: state.me, matchId: mid, homescore: +h, awayscore: +a}]);
+          await sb.from('predictions').insert([{userid: state.me, matchid: mid, homescore: +h, awayscore: +a}]);
         }
       }
     };
@@ -314,7 +314,7 @@
         state.config = cfg.data?.length ? cfg.data[0] : null;
         (u.data || []).forEach(x => state.users[x.id] = x);
         (m.data || []).forEach(x => state.matches.push(x));
-        (p.data || []).forEach(x => state.preds[x.userId + '::' + x.matchId] = { home: x.homescore, away: x.awayscore });
+        (p.data || []).forEach(x => state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore });
         
         // Cargar sesión guardada desde localStorage
         const savedUser = localStorage.getItem('polla_user');
