@@ -134,6 +134,8 @@
       let h = document.getElementById(`h_${mid}`)?.value;
       let a = document.getElementById(`a_${mid}`)?.value;
       
+      console.log(`💾 autosavePred - matchid: ${mid}, h: ${h}, a: ${a}, user: ${state.me}`);
+      
       // Limpiar valores: "00" → "0", "01" → "1", etc.
       if(h) h = String(parseInt(h));
       if(a) a = String(parseInt(a));
@@ -152,17 +154,30 @@
         document.getElementById(`a_${mid}`).value = '';
       }
       
-      if(!h && !a) {
-        delete state.preds[state.me + '::' + mid];
-        await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
-      } else if(h && a) {
-        state.preds[state.me + '::' + mid] = {home: +h, away: +a};
-        const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
-        if(exist.data?.length) {
-          await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
-        } else {
-          await sb.from('predictions').insert([{userid: state.me, matchid: mid, homescore: +h, awayscore: +a}]);
+      try {
+        if(!h && !a) {
+          console.log(`❌ Borrando predicción para ${mid}`);
+          delete state.preds[state.me + '::' + mid];
+          const delResult = await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
+          console.log('Delete result:', delResult);
+        } else if(h && a) {
+          console.log(`✅ Guardando predicción: ${h} - ${a}`);
+          state.preds[state.me + '::' + mid] = {home: +h, away: +a};
+          const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
+          console.log('Existe:', exist.data?.length);
+          if(exist.data?.length) {
+            console.log('Actualizando...');
+            const updateResult = await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+            console.log('Update result:', updateResult);
+          } else {
+            console.log('Insertando...');
+            const insertResult = await sb.from('predictions').insert([{userid: state.me, matchid: mid, homescore: +h, awayscore: +a}]);
+            console.log('Insert result:', insertResult);
+          }
         }
+      } catch(e) {
+        console.error('❌ Error en autosavePred:', e);
+      }
       }
     };
     window.autosavePodiumUser = async function() {
