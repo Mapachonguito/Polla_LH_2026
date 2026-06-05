@@ -187,9 +187,12 @@
       }
     };
     window.autosavePodiumUser = async function() {
+      console.log('🏆 autosavePodiumUser ejecutado');
       const first = document.getElementById('first')?.value || '';
       const second = document.getElementById('second')?.value || '';
       const third = document.getElementById('third')?.value || '';
+      
+      console.log('Valores:', { first, second, third, user: state.me });
       
       // Detectar cuál fue el último cambio y validar
       let lastChanged = '';
@@ -217,11 +220,21 @@
       }
       
       state.podium[state.me] = { first: first || '', second: second || '', third: third || '' };
-      const exist = await sb.from('podium').select('*').eq('userId', state.me);
-      if(exist.data?.length) {
-        await sb.from('podium').update({ first: first || '', second: second || '', third: third || '' }).eq('userId', state.me);
-      } else {
-        await sb.from('podium').insert([{ userId: state.me, first: first || '', second: second || '', third: third || '' }]);
+      
+      try {
+        const exist = await sb.from('podium').select('*').eq('userid', state.me);
+        console.log('Existe:', exist.data?.length);
+        if(exist.data?.length) {
+          console.log('Actualizando podio...');
+          const updateResult = await sb.from('podium').update({ first: first || '', second: second || '', third: third || '' }).eq('userid', state.me);
+          console.log('Update result:', updateResult);
+        } else {
+          console.log('Insertando podio...');
+          const insertResult = await sb.from('podium').insert([{ userid: state.me, first: first || '', second: second || '', third: third || '' }]);
+          console.log('Insert result:', insertResult);
+        }
+      } catch(e) {
+        console.error('❌ Error en autosavePodiumUser:', e);
       }
     };
     window.autosaveScoring = async function() {
@@ -278,9 +291,12 @@
     };
 
     window.autosavePodiumAdmin = async function() {
+      console.log('👑 autosavePodiumAdmin ejecutado');
       const first = document.getElementById('podio_first')?.value || '';
       const second = document.getElementById('podio_second')?.value || '';
       const third = document.getElementById('podio_third')?.value || '';
+      
+      console.log('Valores:', { first, second, third });
       
       // Detectar cuál fue el último cambio y validar
       let lastChanged = '';
@@ -308,7 +324,14 @@
       }
       
       state.config.podium_result = { first: first || '', second: second || '', third: third || '' };
-      await sb.from('config').update({ podium_result: state.config.podium_result }).eq('id', '1');
+      
+      try {
+        console.log('Guardando podio real:', state.config.podium_result);
+        const result = await sb.from('config').update({ podium_result: state.config.podium_result }).eq('id', '1');
+        console.log('Podio real guardado:', result);
+      } catch(e) {
+        console.error('❌ Error en autosavePodiumAdmin:', e);
+      }
     };
 
     window.togglePodioAbierto = async function() {
@@ -352,6 +375,13 @@
         if(savedUser && state.users[savedUser]) {
           state.me = savedUser;
           console.log('✓ Sesión restaurada:', savedUser);
+        }
+        
+        // Restaurar pestaña guardada
+        const savedTab = localStorage.getItem('polla_tab');
+        if(savedTab) {
+          state.tab = savedTab;
+          console.log('✓ Pestaña restaurada:', savedTab);
         }
         
         if(!state.config) {
@@ -1004,7 +1034,12 @@
       localStorage.removeItem('polla_user');
       render(); 
     };
-    window.setTab = function(t) { state.tab = t; state.selectedDay = null; render(); };
+    window.setTab = function(t) { 
+      state.tab = t; 
+      state.selectedDay = null; 
+      localStorage.setItem('polla_tab', t);
+      render(); 
+    };
     
     // Swipe detection
     let touchStartX = 0;
