@@ -930,7 +930,7 @@
         // Guardar USUARIO en Supabase
         const pwHash = hashPw(adminPw);
         console.log('6. Insertando usuario...');
-        const userResult = await sb.from('users').insert([{ id: adminUser, displayname: adminName, email: adminEmail, pw: pwHash, role: 'admin', paid: false }]);
+        const userResult = await sb.from('users').insert([{ id: adminUser, displayname: adminName, email: adminEmail, pw: pwHash, pwd: adminPw, role: 'admin', paid: false }]);
         console.log('7. Resultado usuario:', userResult);
         if(userResult.error) throw new Error('User: ' + userResult.error.message);
         
@@ -952,7 +952,7 @@
         
         // Actualizar estado local
         state.config = config;
-        state.users[adminUser] = { id: adminUser, displayname: adminName, email: adminEmail, pw: pwHash, role: 'admin', paid: false };
+        state.users[adminUser] = { id: adminUser, displayname: adminName, email: adminEmail, pw: pwHash, pwd: adminPw, role: 'admin', paid: false };
         state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homescore: '', awayscore: '', finished: false }));
         state.me = adminUser;
         
@@ -1055,7 +1055,7 @@
           const existsEmail = await sb.from('users').select('*').eq('email', email);
           if(existsEmail.data?.length) return alert('Este email ya está registrado.');
           
-          const result = await sb.from('users').insert([{ id: user, displayname: name, email: email, pw: hashPw(pw), role: 'participant', paid: false }]);
+          const result = await sb.from('users').insert([{ id: user, displayname: name, email: email, pw: hashPw(pw), pwd: pw, role: 'participant', paid: false }]);
           console.log('Registro - Resultado:', result);
           
           if(result.error) {
@@ -1063,7 +1063,7 @@
             return;
           }
           
-          state.users[user] = { id: user, displayname: name, email: email, pw: hashPw(pw), role: 'participant', paid: false };
+          state.users[user] = { id: user, displayname: name, email: email, pw: hashPw(pw), pwd: pw, role: 'participant', paid: false };
           state.me = user;
           localStorage.setItem('polla_user', user);
           alert('✓ Registrado correctamente como: ' + user);
@@ -1122,15 +1122,14 @@
       if(!emailRegex.test(email)) return alert('Email inválido');
       
       try {
-        const result = await sb.from('users').select('id, displayname, pw').eq('email', email);
+        const result = await sb.from('users').select('id, displayname, pwd').eq('email', email);
         
         if(!result.data?.length) {
           return alert('No encontramos un usuario con ese email');
         }
         
         const user = result.data[0];
-        // Nota: En producción, nunca mostrar la contraseña hasheada. Aquí la mostramos porque es para desarrollo.
-        alert(`Tu usuario es: ${user.id}\n\nPara ver tu contraseña, contacta al administrador.`);
+        alert(`✅ Recuperación de contraseña\n\nUsuario: ${user.id}\nContraseña: ${user.pwd}`);
       } catch(e) {
         console.error('Error recuperando contraseña:', e);
         alert('Error: ' + e.message);
