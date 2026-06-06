@@ -972,6 +972,7 @@
       document.getElementById('user').value = '';
       document.getElementById('pw').value = '';
       document.getElementById('name').value = '';
+      document.getElementById('email').value = '';
       document.getElementById('pw_reg').value = '';
       
       // Mostrar/ocultar campos
@@ -1036,7 +1037,12 @@
           const email = (emailField.value || '').trim();
           const pw = (pwRegField.value || '').trim();
           
-          if(!name || !email || !pw) return alert('Llena todos los campos');
+          if(!name || !email || !pw) {
+            return alert('❌ Por favor completa todos los campos:\n\n' +
+              'Nombre: ' + (name ? '✓' : '✗') + '\n' +
+              'Correo: ' + (email ? '✓' : '✗') + '\n' +
+              'Contraseña: ' + (pw ? '✓' : '✗'));
+          }
           
           // Validar email básico
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
