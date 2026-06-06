@@ -476,7 +476,8 @@
             <div id="poolCreation" style="display:none;">
               <h3 style="color:var(--lime);margin-bottom:10px;font-size:14px;">Crear la polla</h3>
               <input type="text" id="poolName" placeholder="Nombre de la polla" value="Polla Mundial 2026">
-              <input type="text" id="adminName" placeholder="Tu nombre">
+              <input type="text" id="adminName" placeholder="Tu nombre completo">
+              <input type="email" id="adminEmail" placeholder="Tu correo">
               <input type="password" id="adminPw" placeholder="Tu contraseña">
               <button onclick="createPool()">Crear Polla</button>
             </div>
@@ -899,8 +900,13 @@
     window.createPool = async function() {
       const poolName = document.getElementById('poolName').value || 'Polla Mundial 2026';
       const adminName = document.getElementById('adminName').value;
+      const adminEmail = document.getElementById('adminEmail').value;
       const adminPw = document.getElementById('adminPw').value;
-      if(!adminName || !adminPw) return alert('Llena todos los campos');
+      if(!adminName || !adminEmail || !adminPw) return alert('Llena todos los campos');
+      
+      // Validar email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if(!emailRegex.test(adminEmail)) return alert('Por favor ingresa un email válido');
       
       try {
         // Generar usuario a partir del nombre (minúsculas, con espacios permitidos)
@@ -924,7 +930,7 @@
         // Guardar USUARIO en Supabase
         const pwHash = hashPw(adminPw);
         console.log('6. Insertando usuario...');
-        const userResult = await sb.from('users').insert([{ id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false }]);
+        const userResult = await sb.from('users').insert([{ id: adminUser, displayname: adminName, email: adminEmail, pw: pwHash, role: 'admin', paid: false }]);
         console.log('7. Resultado usuario:', userResult);
         if(userResult.error) throw new Error('User: ' + userResult.error.message);
         
@@ -946,7 +952,7 @@
         
         // Actualizar estado local
         state.config = config;
-        state.users[adminUser] = { id: adminUser, displayname: adminName, pw: pwHash, role: 'admin', paid: false };
+        state.users[adminUser] = { id: adminUser, displayname: adminName, email: adminEmail, pw: pwHash, role: 'admin', paid: false };
         state.matches = SCHEDULE.map((x,i) => ({ id: 'm'+(i+1), home: x[0], away: x[1], group_name: x[2], datetime: x[3], homescore: '', awayscore: '', finished: false }));
         state.me = adminUser;
         
