@@ -888,6 +888,10 @@
       });
       html += `</div>`;
       
+      html += `<div class="admin-section"><h3>🔄 Reiniciar Polla</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Elimina todos los datos y comienza de nuevo</p>`;
+      html += `<button onclick="reiniciarPolla()" style="width:100%;background:#FF5A3C;color:white;padding:12px;font-weight:700;border-radius:6px;border:none;cursor:pointer;">⚠️ REINICIAR POLLA COMPLETA</button>`;
+      html += `</div>`;
+      
       el.innerHTML = html;
 
     }
@@ -1072,6 +1076,36 @@
       state.pendingSaves = {}; 
       localStorage.removeItem('polla_user');
       render(); 
+    };
+    
+    window.reiniciarPolla = async function() {
+      if(!confirm('⚠️ ¿ESTÁS SEGURO?\n\nEsto borrará TODA la polla:\n- Todos los usuarios\n- Todos los partidos\n- Todas las apuestas\n- Todo el podio\n\nNo se puede deshacer.')) return;
+      
+      try {
+        console.log('🔄 Reiniciando polla...');
+        
+        // Borrar en orden inverso (respetando foreign keys)
+        await sb.from('podium').delete().gte('id', 0);
+        console.log('✓ Podium eliminado');
+        
+        await sb.from('predictions').delete().gte('id', 0);
+        console.log('✓ Predictions eliminado');
+        
+        await sb.from('matches').delete().neq('id', '');
+        console.log('✓ Matches eliminado');
+        
+        await sb.from('users').delete().neq('id', '');
+        console.log('✓ Users eliminado');
+        
+        await sb.from('config').delete().neq('id', '');
+        console.log('✓ Config eliminado');
+        
+        alert('✅ Polla completamente reiniciada. Ahora puedes crear una nueva.');
+        doLogout();
+      } catch(e) {
+        console.error('Error reiniciando:', e);
+        alert('❌ Error: ' + e.message);
+      }
     };
     
     window.showRecoverPassword = async function() {
