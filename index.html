@@ -617,9 +617,9 @@
         return { uid, name: u.displayname, ptsPartidos, ptsPodia, total: ptsPartidos + ptsPodia };
       }).sort((a,b) => b.total - a.total);
       
-      // Tabla top 3 con países apostados
-      html += `<h2 style="margin-top:16px;">🏆 Top 3 - Podio Apostado</h2><div style="overflow-x:auto;"><table><thead><tr><th>Lugar</th><th>Participante</th><th>🥇 Campeón</th><th>🥈 Subcampeón</th><th>🥉 Tercero</th></tr></thead><tbody>`;
-      participantes.slice(0, 3).forEach((p, i) => {
+      // Tabla con todos los participantes
+      html += `<h2 style="margin-top:16px;">🏆 Podio Apostado - Todos los Participantes</h2><div style="overflow-x:auto;"><table><thead><tr><th>Lugar</th><th>Participante</th><th>🥇 Campeón</th><th>🥈 Subcampeón</th><th>🥉 Tercero</th></tr></thead><tbody>`;
+      participantes.forEach((p, i) => {
         const podio = state.podium[p.uid] || {};
         html += `<tr><td><strong>${i+1}</strong></td><td><strong>${p.name}</strong></td><td>${podio.first || '⏳'}</td><td>${podio.second || '⏳'}</td><td>${podio.third || '⏳'}</td></tr>`;
       });
