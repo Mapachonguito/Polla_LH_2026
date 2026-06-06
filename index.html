@@ -492,22 +492,26 @@
             <h1 style="font-size:32px;margin-bottom:8px;">POLLA MUNDIAL 2026</h1>
             <p>Mundial 2026 · pronósticos entre amigos</p>
           </div>
-          <div class="card">
-            <div class="login-buttons">
-              <button class="active" onclick="setMode('login')">→ Ingresar</button>
-              <button onclick="setMode('reg')">Registrarme</button>
+          <form onsubmit="doAuth(); return false;" style="display:contents;">
+            <div class="card">
+              <div class="login-buttons">
+                <button type="button" class="active" onclick="setMode('login')">→ Ingresar</button>
+                <button type="button" onclick="setMode('reg')">Registrarme</button>
+              </div>
+              <hr>
+              <div id="loginFields">
+                <input type="email" id="user" placeholder="Tu correo" autocomplete="email" onkeypress="if(event.key==='Enter') doAuth()">
+                <input type="password" id="pw" placeholder="Contraseña" autocomplete="current-password" onkeypress="if(event.key==='Enter') doAuth()">
+                <button type="button" onclick="showRecoverPassword()" style="background:var(--muted);color:var(--text);font-size:12px;padding:6px;">¿Olvidé mi contraseña?</button>
+              </div>
+              <div id="regFields" class="hidden">
+                <input type="text" id="name" placeholder="Tu nombre" autocomplete="name" onkeypress="if(event.key==='Enter') doAuth()">
+                <input type="email" id="email" placeholder="Tu correo" autocomplete="email" onkeypress="if(event.key==='Enter') doAuth()">
+                <input type="password" id="pw_reg" placeholder="Contraseña" autocomplete="new-password" onkeypress="if(event.key==='Enter') doAuth()">
+              </div>
+              <button type="submit">Continuar</button>
             </div>
-            <hr>
-            <div id="loginFields">
-              <input type="text" id="user" placeholder="Usuario" autocomplete="username" onkeypress="if(event.key==='Enter') doAuth()">
-              <input type="password" id="pw" placeholder="Contraseña" autocomplete="current-password" onkeypress="if(event.key==='Enter') doAuth()">
-            </div>
-            <div id="regFields" class="hidden">
-              <input type="text" id="name" placeholder="Tu nombre" autocomplete="name" onkeypress="if(event.key==='Enter') doAuth()">
-              <input type="password" id="pw_reg" placeholder="Contraseña" autocomplete="new-password" onkeypress="if(event.key==='Enter') doAuth()">
-            </div>
-            <button onclick="doAuth()">Continuar</button>
-          </div>
+          </form>
         `;
         navEl.innerHTML = '';
         saveAllEl.innerHTML = '';
@@ -615,7 +619,13 @@
         });
         
         return { uid, name: u.displayname, ptsPartidos, ptsPodia, total: ptsPartidos + ptsPodia };
-      }).sort((a,b) => b.total - a.total);
+      }).sort((a,b) => {
+        // Usuario logueado primero
+        if(a.uid === state.me) return -1;
+        if(b.uid === state.me) return 1;
+        // Luego por puntos totales (descendente)
+        return b.total - a.total;
+      });
       
       // Tabla con todos los participantes
       html += `<h2 style="margin-top:16px;">🏆 Podio Apostado - Todos los Participantes</h2><div style="overflow-x:auto;"><table><thead><tr><th>Lugar</th><th>Participante</th><th>🥇 Campeón</th><th>🥈 Subcampeón</th><th>🥉 Tercero</th></tr></thead><tbody>`;
@@ -672,11 +682,23 @@
       render();
     };
     window.setResumenFechaInicio = function(fecha) {
+      // Validar que fecha inicio no sea mayor que fecha fin
+      if(fecha && state.resumenFechaFin && fecha > state.resumenFechaFin) {
+        alert('❌ La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
+        document.getElementById('fechaInicio').value = state.resumenFechaInicio || '';
+        return;
+      }
       state.resumenFechaInicio = fecha === '' ? null : fecha;
       render();
     };
     
     window.setResumenFechaFin = function(fecha) {
+      // Validar que fecha fin no sea menor que fecha inicio
+      if(fecha && state.resumenFechaInicio && fecha < state.resumenFechaInicio) {
+        alert('❌ La fecha "Hasta" no puede ser menor que la fecha "Desde"');
+        document.getElementById('fechaFin').value = state.resumenFechaFin || '';
+        return;
+      }
       state.resumenFechaFin = fecha === '' ? null : fecha;
       render();
     };
@@ -877,8 +899,8 @@
       if(!adminName || !adminPw) return alert('Llena todos los campos');
       
       try {
-        // Generar usuario a partir del nombre (minúsculas, sin espacios)
-        const adminUser = adminName.toLowerCase().replace(/\s+/g, '');
+        // Generar usuario a partir del nombre (minúsculas, con espacios permitidos)
+        const adminUser = adminName.toLowerCase().trim();
         console.log('1. Admin user generado:', adminUser);
         
         const config = { poolname: poolName, scoring: {exact:5, outcome:3, champion:10, second:5, third:2} };
@@ -968,47 +990,62 @@
             return alert('Error: Los campos de login no están visibles. Intenta refrescar la página.');
           }
           
-          const user = (userField.value || '').toLowerCase().trim();
+          const email = (userField.value || '').toLowerCase().trim();
           const pw = (pwField.value || '').trim();
           
-          console.log('Login - Valores leídos:', { user, pw, userLength: user.length, pwLength: pw.length });
+          console.log('Login - Valores leídos:', { email, pw, emailLength: email.length, pwLength: pw.length });
           
-          if(!user || !pw) {
-            return alert('Llena todos los campos.\n\nCampo usuario: ' + (user ? '✓' : '✗') + '\nCampo contraseña: ' + (pw ? '✓' : '✗'));
+          if(!email || !pw) {
+            return alert('Llena todos los campos.\n\nCampo correo: ' + (email ? '✓' : '✗') + '\nCampo contraseña: ' + (pw ? '✓' : '✗'));
           }
           
-          const u = await sb.from('users').select('*').eq('id', user);
-          console.log('Login - Usuario buscado:', user, 'Resultado:', u);
+          // Validar email
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if(!emailRegex.test(email)) return alert('Por favor ingresa un email válido');
           
-          if(!u.data?.length) return alert(`Usuario "${user}" no encontrado. ¿Está seguro que se registró?`);
+          const u = await sb.from('users').select('*').eq('email', email);
+          console.log('Login - Usuario buscado por email:', email, 'Resultado:', u);
+          
+          if(!u.data?.length) return alert(`No encontramos una cuenta con el email "${email}". ¿Está seguro que se registró?`);
           if(u.data[0].pw !== hashPw(pw)) return alert('Contraseña incorrecta');
           
-          state.users[user] = u.data[0];
-          state.me = user;
-          localStorage.setItem('polla_user', user);
+          const userId = u.data[0].id; // El id es el nombre de usuario
+          state.users[userId] = u.data[0];
+          state.me = userId;
+          localStorage.setItem('polla_user', userId);
         } else {
           const nameField = document.getElementById('name');
+          const emailField = document.getElementById('email');
           const pwRegField = document.getElementById('pw_reg');
           
-          if(!nameField || !pwRegField) {
+          if(!nameField || !emailField || !pwRegField) {
             return alert('Error: Los campos no están visibles. Intenta de nuevo.');
           }
           
           const name = (nameField.value || '').trim();
+          const email = (emailField.value || '').trim();
           const pw = (pwRegField.value || '').trim();
           
-          if(!name || !pw) return alert('Llena todos los campos');
+          if(!name || !email || !pw) return alert('Llena todos los campos');
           
-          // Generar usuario automático basado en nombre (sin espacios, minúsculas)
-          const user = name.toLowerCase().replace(/\s+/g, '');
+          // Validar email básico
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if(!emailRegex.test(email)) return alert('Por favor ingresa un email válido');
           
-          console.log('Registro - Nombre:', name, 'Usuario generado:', user);
+          // Generar usuario automático basado en nombre (con espacios permitidos, minúsculas)
+          const user = name.toLowerCase().trim();
           
-          // Verificar que no exista
+          console.log('Registro - Nombre:', name, 'Email:', email, 'Usuario generado:', user);
+          
+          // Verificar que no exista usuario
           const exists = await sb.from('users').select('*').eq('id', user);
           if(exists.data?.length) return alert('Este nombre ya está registrado. Usa otro nombre.');
           
-          const result = await sb.from('users').insert([{ id: user, displayname: name, pw: hashPw(pw), role: 'participant', paid: false }]);
+          // Verificar que no exista email
+          const existsEmail = await sb.from('users').select('*').eq('email', email);
+          if(existsEmail.data?.length) return alert('Este email ya está registrado.');
+          
+          const result = await sb.from('users').insert([{ id: user, displayname: name, email: email, pw: hashPw(pw), role: 'participant', paid: false }]);
           console.log('Registro - Resultado:', result);
           
           if(result.error) {
@@ -1016,7 +1053,7 @@
             return;
           }
           
-          state.users[user] = { id: user, displayname: name, pw: hashPw(pw), role: 'participant', paid: false };
+          state.users[user] = { id: user, displayname: name, email: email, pw: hashPw(pw), role: 'participant', paid: false };
           state.me = user;
           localStorage.setItem('polla_user', user);
           alert('✓ Registrado correctamente como: ' + user);
@@ -1035,6 +1072,29 @@
       state.pendingSaves = {}; 
       localStorage.removeItem('polla_user');
       render(); 
+    };
+    
+    window.showRecoverPassword = async function() {
+      const email = prompt('Ingresa tu correo para recuperar tu contraseña:');
+      if(!email) return;
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if(!emailRegex.test(email)) return alert('Email inválido');
+      
+      try {
+        const result = await sb.from('users').select('id, displayname, pw').eq('email', email);
+        
+        if(!result.data?.length) {
+          return alert('No encontramos un usuario con ese email');
+        }
+        
+        const user = result.data[0];
+        // Nota: En producción, nunca mostrar la contraseña hasheada. Aquí la mostramos porque es para desarrollo.
+        alert(`Tu usuario es: ${user.id}\n\nPara ver tu contraseña, contacta al administrador.`);
+      } catch(e) {
+        console.error('Error recuperando contraseña:', e);
+        alert('Error: ' + e.message);
+      }
     };
     window.setTab = function(t) { 
       state.tab = t; 
