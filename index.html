@@ -83,7 +83,7 @@
 
   <script>
     const { createClient } = supabase;
-    const sb = createClient('https://rklimxsgnfdsnmxpfbgs.supabase.co', 'sb_publishable_p31XLskmCvUgg2GSYbbcyQ_UYSqUiny');
+    const sb = createClient('https://bksbsohlegqsdgnahwcg.supabase.co', 'sb_publishable_zZlFownAFeRvy6nyhnS7xw_xuvfUMkW');
     
     const SCHEDULE = [
       ["México","Sudáfrica","A","2026-06-11T15:00"],["Corea del Sur","República Checa","A","2026-06-11T22:00"],
@@ -531,6 +531,7 @@
         if(state.tab === 'partidos') renderPartidos(content);
         else if(state.tab === 'resumen') renderResumen(content);
         else if(state.tab === 'tabla') renderTabla(content);
+        else if(state.tab === 'estadisticas') renderEstadisticas(content);
         else if(state.tab === 'admin') renderAdmin(content);
       }
     }
@@ -822,7 +823,64 @@
       saveAllEl.innerHTML = '';
     }
 
-    function renderAdmin(el) {
+
+function renderEstadisticas(content) {
+  (async () => {
+    try {
+      const { data: matches } = await supabase.from('matches').select('*');
+      const banderas = {'México':'🇲🇽','Uruguay':'🇺🇾','Canadá':'🇨🇦','Francia':'🇫🇷','España':'🇪🇸','Italia':'🇮🇹','Bulgaria':'🇧🇬','Malta':'🇲🇹','Alemania':'🇩🇪','Dinamarca':'🇩🇰','Costa de Marfil':'🇨🇮','Egipto':'🇪🇬','Senegal':'🇸🇳','Angola':'🇦🇴','Zimbabwe':'🇿🇼','Brasil':'🇧🇷','Jamaica':'🇯🇲','Suiza':'🇨🇭','Grecia':'🇬🇷','Argentina':'🇦🇷','Paraguay':'🇵🇾','Bolivia':'🇧🇴','Holanda':'🇳🇱','Tailandia':'🇹🇭','Marruecos':'🇲🇦','Túnez':'🇹🇳','Portugal':'🇵🇹','Irán':'🇮🇷','Irak':'🇮🇶','Omán':'🇴🇲','Colombia':'🇨🇴','Panamá':'🇵🇦','Costa Rica':'🇨🇷','Polonia':'🇵🇱','Congo':'🇨🇬','Croacia':'🇭🇷'};
+      
+      const grupos = {};
+      matches.forEach(m => {
+        if(!grupos[m.group_name]) grupos[m.group_name] = new Set();
+        grupos[m.group_name].add(m.home);
+        grupos[m.group_name].add(m.away);
+      });
+      
+      const tablasGrupos = {};
+      Object.entries(grupos).forEach(([grp, eqs]) => {
+        const datos = {};
+        eqs.forEach(e => datos[e] = {pts:0,pj:0,pg:0,pe:0,pp:0,gf:0,gc:0});
+        
+        matches.filter(m => m.group_name === grp && m.finished && m.homescore && m.awayscore).forEach(m => {
+          const hs = parseInt(m.homescore), as = parseInt(m.awayscore);
+          datos[m.home].pj++; datos[m.away].pj++;
+          datos[m.home].gf += hs; datos[m.home].gc += as;
+          datos[m.away].gf += as; datos[m.away].gc += hs;
+          if(hs > as) { datos[m.home].pg++; datos[m.home].pts+=3; datos[m.away].pp++; }
+          else if(hs < as) { datos[m.away].pg++; datos[m.away].pts+=3; datos[m.home].pp++; }
+          else { datos[m.home].pe++; datos[m.away].pe++; datos[m.home].pts++; datos[m.away].pts++; }
+        });
+        
+        tablasGrupos[grp] = Object.entries(datos).map(([e,d]) => ({equipo:e,...d,dg:d.gf-d.gc})).sort((a,b) => b.pts-a.pts || b.dg-a.dg || b.gf-a.gf);
+      });
+      
+      let h = '<div style="padding:12px;background:var(--bg);">';
+      Object.keys(tablasGrupos).sort().forEach(grp => {
+        h += `<div style="margin-bottom:24px;background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--line);"><h3 style="margin:0 0 12px 0;color:var(--lime);font-size:16px;">GRUPO ${grp}</h3><table style="width:100%;font-size:11px;border-collapse:collapse;"><tr style="background:var(--line);font-weight:700;color:var(--lime);"><td style="padding:6px;border:1px solid var(--line);">Pos</td><td style="padding:6px;border:1px solid var(--line);">Equipo</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">Pts</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PJ</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PG</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PE</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PP</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">GF</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">GC</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">DG</td></tr>`;
+        tablasGrupos[grp].forEach((p,i) => {
+          const b = banderas[p.equipo] || '⚽';
+          h += `<tr style="border-bottom:1px solid var(--line);"><td style="padding:6px;border:1px solid var(--line);font-weight:700;">${i+1}</td><td style="padding:6px;border:1px solid var(--line);font-weight:700;">${b} ${p.equipo}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;font-weight:700;">${p.pts}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.pj}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.pg}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.pe}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.pp}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.gf}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.gc}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${p.dg}</td></tr>`;
+        });
+        h += '</table></div>';
+      });
+      
+      const todo = {}; Object.values(tablasGrupos).forEach(g => g.forEach(e => { if(!todo[e.equipo]) todo[e.equipo] = e; }));
+      const ranking = Object.values(todo).sort((a,b) => b.pts-a.pts || b.dg-a.dg || b.gf-a.gf);
+      
+      h += `<div style="margin-bottom:24px;background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--line);"><h3 style="margin:0 0 12px 0;color:var(--lime);font-size:16px;">RANKING GENERAL</h3><table style="width:100%;font-size:11px;border-collapse:collapse;"><tr style="background:var(--line);font-weight:700;color:var(--lime);"><td style="padding:6px;border:1px solid var(--line);">Pos</td><td style="padding:6px;border:1px solid var(--line);">Equipo</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">Pts</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PJ</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PG</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PE</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">PP</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">GF</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">GC</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">DG</td></tr>`;
+      ranking.forEach((e,i) => {
+        const b = banderas[e.equipo] || '⚽';
+        h += `<tr style="border-bottom:1px solid var(--line);"><td style="padding:6px;border:1px solid var(--line);font-weight:700;">${i+1}</td><td style="padding:6px;border:1px solid var(--line);font-weight:700;">${b} ${e.equipo}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;font-weight:700;">${e.pts}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.pj}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.pg}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.pe}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.pp}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.gf}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.gc}</td><td style="padding:6px;border:1px solid var(--line);text-align:center;">${e.dg}</td></tr>`;
+      });
+      h += '</table></div></div>';
+      content.innerHTML = h;
+    } catch(e) { content.innerHTML = '<div style="padding:20px;color:red;">Error: '+e.message+'</div>'; }
+  })();
+}
+
+
+        function renderAdmin(el) {
       const teams = [...new Set(state.matches.flatMap(m => [m.home, m.away]))].sort();
       let html = `<h2>Panel de Admin</h2>`;
       
