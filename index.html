@@ -827,7 +827,7 @@
     function renderEstadisticas(el) {
       (async () => {
         try {
-          const {data:m} = await supabase.from('matches').select('*');
+          const {data:m} = await sb.from('matches').select('*');
           const b = {'México':'🇲🇽','Uruguay':'🇺🇾','Canadá':'🇨🇦','Francia':'🇫🇷','España':'🇪🇸','Italia':'🇮🇹','Bulgaria':'🇧🇬','Malta':'🇲🇹','Alemania':'🇩🇪','Dinamarca':'🇩🇰','Costa de Marfil':'🇨🇮','Egipto':'🇪🇬','Senegal':'🇸🇳','Angola':'🇦🇴','Zimbabwe':'🇿🇼','Brasil':'🇧🇷','Jamaica':'🇯🇲','Suiza':'🇨🇭','Grecia':'🇬🇷','Argentina':'🇦🇷','Paraguay':'🇵🇾','Bolivia':'🇧🇴','Holanda':'🇳🇱','Tailandia':'🇹🇭','Marruecos':'🇲🇦','Túnez':'🇹🇳','Portugal':'🇵🇹','Irán':'🇮🇷','Irak':'🇮🇶','Omán':'🇴🇲','Colombia':'🇨🇴','Panamá':'🇵🇦','Costa Rica':'🇨🇷','Polonia':'🇵🇱','Congo':'🇨🇬','Croacia':'🇭🇷'};
           const g = {};
           m.forEach(x=>{if(!g[x.group_name])g[x.group_name]=new Set();g[x.group_name].add(x.home);g[x.group_name].add(x.away);});
