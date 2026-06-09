@@ -1246,20 +1246,22 @@ function renderEstadisticas(el){(async()=>{try{const {data:m}=await sb.from('mat
     };
 
     window.deleteParticipant = async function(uid) {
-      if(!confirm(`¿Eliminar a ${state.users[uid].displayname}? Podrá volver a registrarse si lo desea.`)) return;
+      const userName = state.users[uid].displayname;
+      if(!confirm(`¿Eliminar a ${userName}? Podrá volver a registrarse si lo desea.`)) return;
       try {
+        // Primero eliminar predicciones
+        await sb.from('predictions').delete().eq('userid', uid);
+        // Luego eliminar usuario
         await sb.from('users').delete().eq('id', uid);
         delete state.users[uid];
-        // Eliminar todas sus predicciones también
         Object.keys(state.preds).forEach(k => {
           if(k.startsWith(uid + '::')) delete state.preds[k];
         });
-        await sb.from('predictions').delete().eq('userId', uid);
-        alert(`✓ ${state.users[uid] ? state.users[uid].displayname : 'Participante'} eliminado`);
+        alert(`✓ ${userName} eliminado correctamente`);
         render();
       } catch(e) {
-        console.error(e);
-        alert('Error al eliminar');
+        console.error('Error eliminando participante:', e);
+        alert('Error al eliminar: ' + e.message);
       }
     };
 
