@@ -141,8 +141,8 @@
       if(a) a = String(parseInt(a));
       
       // Actualizar display para que se vea limpio
-      if(h) document.getElementById(`h_${mid}`).value = h;
-      if(a) document.getElementById(`a_${mid}`).value = a;
+      if(h !== undefined && h !== '') document.getElementById(`h_${mid}`).value = h;
+      if(a !== undefined && a !== '') document.getElementById(`a_${mid}`).value = a;
       
       // Si son negativos, dejar vacío
       if(h && parseInt(h) < 0) { 
@@ -263,8 +263,8 @@
       if(awayVal) awayVal = String(parseInt(awayVal));
       
       // Actualizar display para que se vea limpio
-      if(homeVal) document.getElementById('res_h_' + mid).value = homeVal;
-      if(awayVal) document.getElementById('res_a_' + mid).value = awayVal;
+      if(homeVal !== undefined && homeVal !== '') document.getElementById('res_h_' + mid).value = homeVal;
+      if(awayVal !== undefined && awayVal !== '') document.getElementById('res_a_' + mid).value = awayVal;
       
       // Si son negativos, dejar vacío
       if(homeVal && parseInt(homeVal) < 0) { 
