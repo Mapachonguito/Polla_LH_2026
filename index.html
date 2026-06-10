@@ -560,7 +560,7 @@
       filtered.forEach(m => {
         const p = state.preds[state.me + '::' + m.id] || state.pendingSaves[m.id] || {};
         const locked = isLocked(m);
-        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home||''}" min="0" max="99" onchange="autosavePred('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away||''}" min="0" max="99" onchange="autosavePred('${m.id}')" ${locked?'disabled':''}></div></div>`;
+        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" onchange="autosavePred('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" onchange="autosavePred('${m.id}')" ${locked?'disabled':''}></div></div>`;
       });
       
       el.innerHTML = html;
