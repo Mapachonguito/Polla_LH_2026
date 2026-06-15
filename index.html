@@ -638,8 +638,10 @@
         // Usuario logueado primero
         if(a.uid === state.me) return -1;
         if(b.uid === state.me) return 1;
-        // Luego por puntos totales (descendente)
-        return b.total - a.total;
+        // Ordenar por: 1) Total puntos, 2) Exactos (perfectos), 3) Resultados
+        if(b.total !== a.total) return b.total - a.total;  // Puntos totales
+        if(b.ptsPartidos !== a.ptsPartidos) return b.ptsPartidos - a.ptsPartidos;  // Exactos
+        return 0;
       });
       
       // Tabla con todos los participantes
