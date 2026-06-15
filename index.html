@@ -1204,9 +1204,24 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
     // Scroll position memory - guardar posición en cada pestaña
     const scrollPositions = {};
     
+    // Cargar posiciones de scroll guardadas desde localStorage al iniciar
+    const savedScrollPositions = localStorage.getItem('polla_scrollPositions');
+    if(savedScrollPositions) {
+      try {
+        Object.assign(scrollPositions, JSON.parse(savedScrollPositions));
+      } catch(e) {}
+    }
+    
+    // Guardar posición de scroll cuando el usuario scrollea
+    window.addEventListener('scroll', function() {
+      scrollPositions[state.tab] = window.scrollY || 0;
+      localStorage.setItem('polla_scrollPositions', JSON.stringify(scrollPositions));
+    });
+    
     window.setTab = function(t) { 
       // Guardar scroll actual ANTES de cambiar pestaña
       scrollPositions[state.tab] = window.scrollY || 0;
+      localStorage.setItem('polla_scrollPositions', JSON.stringify(scrollPositions));
       
       state.tab = t; 
       localStorage.setItem('polla_tab', t);
