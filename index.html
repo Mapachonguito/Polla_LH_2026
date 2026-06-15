@@ -124,7 +124,7 @@
       ["Argelia","Austria","J","2026-06-27T22:00"],["Jordania","Argentina","J","2026-06-27T22:00"],
     ];
 
-    let state = { me: null, tab: 'partidos', config: null, users: {}, matches: [], preds: {}, podium: {}, selectedDay: null, pendingSaves: {}, resumenFechaInicio: '2026-06-11', resumenFechaFin: null };
+    let state = { me: null, tab: 'partidos', config: null, users: {}, matches: [], preds: {}, podium: {}, selectedDay: localStorage.getItem('polla_selectedDay') || null, pendingSaves: {}, resumenFechaInicio: localStorage.getItem('polla_fechaInicio') || '2026-06-11', resumenFechaFin: localStorage.getItem('polla_fechaFin') || null };
     const appEl = document.getElementById('app');
     const navEl = document.getElementById('bottomNav');
     const saveAllEl = document.getElementById('saveAllBtn');
@@ -713,6 +713,7 @@
         return;
       }
       state.resumenFechaInicio = fecha === '' ? null : fecha;
+      localStorage.setItem('polla_fechaInicio', state.resumenFechaInicio || '');
       render();
     };
     
@@ -724,12 +725,15 @@
         return;
       }
       state.resumenFechaFin = fecha === '' ? null : fecha;
+      localStorage.setItem('polla_fechaFin', state.resumenFechaFin || '');
       render();
     };
     
     window.limpiarFiltroResumen = function() {
       state.resumenFechaInicio = null;
       state.resumenFechaFin = null;
+      localStorage.removeItem('polla_fechaInicio');
+      localStorage.removeItem('polla_fechaFin');
       render();
     };
 
@@ -1191,7 +1195,6 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       scrollPositions[state.tab] = window.scrollY || 0;
       
       state.tab = t; 
-      state.selectedDay = null; 
       localStorage.setItem('polla_tab', t);
       render(); 
       
@@ -1204,7 +1207,11 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
     
     // Swipe detection
     // Swipe desactivado - cambiar pestañas solo con botones
-    window.filterDay = function(d) { state.selectedDay = d === '' ? null : d; render(); };
+    window.filterDay = function(d) { 
+      state.selectedDay = d === '' ? null : d; 
+      localStorage.setItem('polla_selectedDay', state.selectedDay || '');
+      render(); 
+    };
     
     window.deleteMatch = async function(mid) {
       try {
