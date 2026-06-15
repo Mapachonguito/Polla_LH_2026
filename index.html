@@ -124,7 +124,7 @@
       ["Argelia","Austria","J","2026-06-27T22:00"],["Jordania","Argentina","J","2026-06-27T22:00"],
     ];
 
-    let state = { me: null, tab: 'partidos', config: null, users: {}, matches: [], preds: {}, podium: {}, selectedDay: localStorage.getItem('polla_selectedDay') || null, adminSelectedDay: null, pendingSaves: {}, resumenFechaInicio: localStorage.getItem('polla_fechaInicio') || '2026-06-11', resumenFechaFin: localStorage.getItem('polla_fechaFin') || null };
+    let state = { me: null, tab: 'partidos', config: null, users: {}, matches: [], preds: {}, podium: {}, selectedDay: localStorage.getItem('polla_selectedDay') || null, adminSelectedDay: localStorage.getItem('polla_adminSelectedDay') || null, pendingSaves: {}, resumenFechaInicio: localStorage.getItem('polla_fechaInicio') || '2026-06-11', resumenFechaFin: localStorage.getItem('polla_fechaFin') || null };
     const appEl = document.getElementById('app');
     const navEl = document.getElementById('bottomNav');
     const saveAllEl = document.getElementById('saveAllBtn');
@@ -601,7 +601,7 @@
       const fechaFin = state.resumenFechaFin || null;
       
       let html = `<h2>Resumen de Apuestas</h2>`;
-      html += `<div style="display:flex;gap:8px;margin-bottom:12px;"><div style="flex:1;"><label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Desde:</label><input type="date" id="fechaInicio" value="${fechaInicio||''}" onchange="setResumenFechaInicio(this.value)"></div><div style="flex:1;"><label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Hasta:</label><input type="date" id="fechaFin" value="${fechaFin||''}" onchange="setResumenFechaFin(this.value)"></div><button onclick="limpiarFiltroResumen()" style="flex:0.5;padding:8px;">Limpiar</button></div>`;
+      html += `<div style="display:flex;gap:8px;margin-bottom:12px;"><div style="flex:1;"><label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Desde:</label><input type="date" id="fechaInicio" value="${fechaInicio||''}" onblur="setResumenFechaInicio(this.value)" autocomplete="off"></div><div style="flex:1;"><label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Hasta:</label><input type="date" id="fechaFin" value="${fechaFin||''}" onblur="setResumenFechaFin(this.value)" autocomplete="off"></div><button onclick="limpiarFiltroResumen()" style="flex:0.5;padding:8px;">Limpiar</button></div>`;
       
       // Obtener apuestas y puntos para cada participante
       const participantes = Object.keys(state.users).map(uid => {
@@ -1229,6 +1229,7 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
     
     window.filterAdminDay = function(d) {
       state.adminSelectedDay = d === '' ? null : d;
+      localStorage.setItem('polla_adminSelectedDay', state.adminSelectedDay || '');
       render();
     };
     
