@@ -772,6 +772,8 @@
         
         // Calcular puntos CORRECTAMENTE
         let pts = 0;
+        let cantExactos = 0;
+        let cantResultados = 0;
         Object.keys(state.preds).forEach(k => {
           if(!k.startsWith(uid + '::')) return;
           const mid = k.split('::')[1];
@@ -783,8 +785,14 @@
           const ph = +state.preds[k].home;
           const pa = +state.preds[k].away;
           
-          if(ph === mh && pa === ma) pts += scoring.exact; // Marcador perfecto
-          else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) pts += scoring.outcome; // Solo resultado
+          if(ph === mh && pa === ma) {
+            cantExactos++;
+            pts += scoring.exact; // Marcador perfecto
+          }
+          else if((ph > pa && mh > ma) || (ph < pa && mh < ma) || (ph === pa && mh === ma)) {
+            cantResultados++;
+            pts += scoring.outcome; // Solo resultado
+          }
         });
         
         let bonoMundial = 0;
@@ -797,8 +805,12 @@
           if(state.podium[uid].third && state.podium[uid].third === podiumReal.third) bonoMundial += scoring.third;
         }
         
-        return { uid, name: u.displayname, pts, bonoMundial, total: pts + bonoMundial };
-      }).sort((a,b) => b.total - a.total);
+        return { uid, name: u.displayname, pts, bonoMundial, total: pts + bonoMundial, cantExactos, cantResultados };
+      }).sort((a,b) => {
+        if(b.total !== a.total) return b.total - a.total;
+        if(b.cantExactos !== a.cantExactos) return b.cantExactos - a.cantExactos;
+        return b.cantResultados - a.cantResultados;
+      });
       
       html += `<div style="overflow-x:auto;">`;
       html += `<table><thead><tr><th style="width:40px;text-align:center;">LUGAR</th><th style="text-align:center;">NOMBRE</th><th style="text-align:center;">PUNTOS</th><th style="text-align:center;">MARCADOR PERFECTO</th><th style="text-align:center;">RESULTADO</th><th style="text-align:center;">Nº PARTIDOS</th><th style="text-align:center;">BONO MUNDIAL</th></tr></thead><tbody>`;
