@@ -1234,6 +1234,12 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       }, 0);
     };
     
+    // Restaurar scroll cuando carga la página
+    setTimeout(() => {
+      const savedScroll = scrollPositions[state.tab] || 0;
+      window.scrollTo(0, savedScroll);
+    }, 100);
+    
     // Swipe detection
     // Swipe desactivado - cambiar pestañas solo con botones
     window.filterDay = function(d) { 
