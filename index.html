@@ -1203,8 +1203,9 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
     };
     // Scroll position memory - guardar posición en cada pestaña
     const scrollPositions = {};
+    let scrollTimeout;
     
-    // Cargar posiciones de scroll guardadas desde localStorage al iniciar
+    // Cargar posiciones de scroll guardadas
     const savedScrollPositions = localStorage.getItem('polla_scrollPositions');
     if(savedScrollPositions) {
       try {
@@ -1212,14 +1213,17 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       } catch(e) {}
     }
     
-    // Guardar posición de scroll cuando el usuario scrollea
+    // Guardar scroll mientras el usuario scrollea (con debounce para eficiencia)
     window.addEventListener('scroll', function() {
-      scrollPositions[state.tab] = window.scrollY || 0;
-      localStorage.setItem('polla_scrollPositions', JSON.stringify(scrollPositions));
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        scrollPositions[state.tab] = window.scrollY || 0;
+        localStorage.setItem('polla_scrollPositions', JSON.stringify(scrollPositions));
+      }, 300);
     });
     
     window.setTab = function(t) { 
-      // Guardar scroll actual ANTES de cambiar pestaña
+      // Guardar scroll ANTES de cambiar pestaña
       scrollPositions[state.tab] = window.scrollY || 0;
       localStorage.setItem('polla_scrollPositions', JSON.stringify(scrollPositions));
       
@@ -1234,10 +1238,11 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       }, 0);
     };
     
-    // Restaurar scroll cuando carga la página
+    // Al cargar la página, restaurar el scroll después de que renderice
     setTimeout(() => {
-      const savedScroll = scrollPositions[state.tab] || 0;
-      window.scrollTo(0, savedScroll);
+      if(scrollPositions[state.tab] !== undefined && scrollPositions[state.tab] > 0) {
+        window.scrollTo(0, scrollPositions[state.tab]);
+      }
     }, 100);
     
     // Swipe detection
