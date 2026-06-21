@@ -471,9 +471,7 @@
       navEl.innerHTML = tabs.map(t => `<button class="nav-btn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.label}</button>`).join('');
     }
 
-    function render() {
-
-    // ===== FASE 2: Llave de 16avos con nombres reales =====
+    // ===== FASE 2: Funciones globales para llave 16avos =====
     function calcularRankingGrupos() {
       const grupos = {};
       for (let i = 0; i < state.matches.length; i++) {
@@ -520,33 +518,24 @@
       const llave = [];
       for (const m of matchups) {
         let eq1 = '?', eq2 = '?';
-        if (m.pos1 === '1') {
-          eq1 = ranking[m.g1] && ranking[m.g1][0] ? ranking[m.g1][0].equipo : '?';
-        }
-        if (m.pos2 === '2') {
-          eq2 = ranking[m.g2] && ranking[m.g2][1] ? ranking[m.g2][1].equipo : '?';
-        } else if (m.pos2 === '3') {
-          eq2 = '3 ' + m.g2;
-        }
+        if (ranking[m.g1] && ranking[m.g1][0]) eq1 = ranking[m.g1][0].equipo;
+        if (m.pos2 === '2' && ranking[m.g2] && ranking[m.g2][1]) eq2 = ranking[m.g2][1].equipo;
+        else if (m.pos2 === '3') eq2 = '3 ' + m.g2;
         llave.push({eq1, eq2, num: m.num});
       }
       return llave;
     }
-    window.renderFase2 = function(content) {
+    function renderFase2(content) {
       const llave = generarLlaveFase2();
       let html = '<div style="overflow-x:auto;padding:20px"><div style="display:flex;gap:40px;min-width:max-content"><div><h3 style="text-align:center;margin-bottom:20px">16avos de Final</h3><div style="display:flex;flex-direction:column;gap:20px">';
       for (const l of llave) {
-        html += `<div>
-          <div style="font-size:12px;color:#666;margin-bottom:5px;font-weight:bold">Partido ${l.num}</div>
-          <div style="border:2px solid #333;border-radius:6px;overflow:hidden">
-            <div style="padding:10px;background:#f8f8f8;border-bottom:2px solid #333;min-width:180px;font-weight:bold">${l.eq1}</div>
-            <div style="padding:10px;background:#f8f8f8;min-width:180px;font-weight:bold">${l.eq2}</div>
-          </div>
-        </div>`;
+        html += `<div><div style="font-size:12px;color:#666;margin-bottom:5px;font-weight:bold">Partido ${l.num}</div><div style="border:2px solid #333;border-radius:6px;overflow:hidden"><div style="padding:10px;background:#f8f8f8;border-bottom:2px solid #333;min-width:180px;font-weight:bold">${l.eq1}</div><div style="padding:10px;background:#f8f8f8;min-width:180px;font-weight:bold">${l.eq2}</div></div></div>`;
       }
       html += '</div></div><div><h3 style="text-align:center;margin-bottom:20px">Octavos</h3><div style="text-align:center;color:#999;padding:30px">Próximamente</div></div></div></div>';
       content.innerHTML = html;
-    };
+    }
+
+    function render() {
       if(!state.config) {
         appEl.innerHTML = `
           <div style="text-align:center;margin-bottom:40px;">
