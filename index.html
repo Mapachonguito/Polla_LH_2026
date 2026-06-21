@@ -466,12 +466,66 @@
     function fmtMoney(n, c) { try { return new Intl.NumberFormat("es-CL", { style: "currency", currency: c||"CLP", maximumFractionDigits: 0 }).format(Math.round(n||0)); } catch { return "$"+Math.round(n||0); } }
 
     function renderNav() {
-      const tabs = [{ id: 'partidos', label: 'Partidos' }, { id: 'resumen', label: 'Resumen' }, { id: 'tabla', label: 'Tabla' }, { id: 'estadisticas', label: 'Estadísticas' }, { id: 'reglas', label: 'Reglas' }];
+      const tabs = [{ id: 'partidos', label: 'Partidos' }, { id: 'resumen', label: 'Resumen' }, { id: 'tabla', label: 'Tabla' }, { id: 'estadisticas', label: 'Estadísticas' }, { id: 'fase2', label: 'Fase 2' }, { id: 'reglas', label: 'Reglas' }];
       if(state.me && state.users[state.me]?.role === 'admin') tabs.push({ id: 'admin', label: 'Admin' });
       navEl.innerHTML = tabs.map(t => `<button class="nav-btn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.label}</button>`).join('');
     }
 
     function render() {
+
+    // ===== FASE 2: Funciones para llave de 16avos =====
+    function calcularRankingGrupos() {
+      const grupos = {};
+      for (let i = 0; i < state.matches.length; i++) {
+        const m = state.matches[i];
+        if (!grupos[m.group_name]) grupos[m.group_name] = {};
+      }
+      for (let i = 0; i < state.matches.length; i++) {
+        const m = state.matches[i];
+        const g = m.group_name;
+        if (!grupos[g][m.home]) grupos[g][m.home] = { equipo: m.home, pts: 0, gf: 0, gc: 0 };
+        if (!grupos[g][m.away]) grupos[g][m.away] = { equipo: m.away, pts: 0, gf: 0, gc: 0 };
+        if (m.finished && m.homescore !== null) {
+          const hs = parseInt(m.homescore) || 0, as = parseInt(m.awayscore) || 0;
+          grupos[g][m.home].gf += hs; grupos[g][m.home].gc += as;
+          grupos[g][m.away].gf += as; grupos[g][m.away].gc += hs;
+          if (hs > as) grupos[g][m.home].pts += 3;
+          else if (as > hs) grupos[g][m.away].pts += 3;
+          else { grupos[g][m.home].pts += 1; grupos[g][m.away].pts += 1; }
+        }
+      }
+      const clasificados = {};
+      for (const [gNombre, equipos] of Object.entries(grupos)) {
+        const arr = Object.values(equipos).sort((a,b) => b.pts - a.pts || (b.gf-b.gc) - (a.gf-a.gc) || b.gf - a.gf);
+        clasificados[gNombre] = arr;
+      }
+      return clasificados;
+    }
+    function generarLlaveFase2() {
+      const ranking = calcularRankingGrupos();
+      const matchups = [
+        {'1':'A','2':'B'},{'1':'B','2':'A'},{'1':'C','2':'D'},{'1':'D','2':'C'},
+        {'1':'E','2':'F'},{'1':'F','2':'E'},{'1':'G','2':'H'},{'1':'H','2':'G'},
+        {'1':'I','2':'J'},{'1':'J','2':'I'},{'1':'K','2':'L'},{'1':'L','2':'K'}
+      ];
+      const llave = [];
+      for (const m of matchups) {
+        const g1 = m['1'], g2 = m['2'];
+        const eq1 = ranking[g1] && ranking[g1][0] ? ranking[g1][0].equipo : '?';
+        const eq2 = ranking[g2] && ranking[g2][1] ? ranking[g2][1].equipo : '?';
+        llave.push({eq1, eq2});
+      }
+      return llave;
+    }
+    window.renderFase2 = function(content) {
+      const llave = generarLlaveFase2();
+      let html = '<div style="overflow-x:auto;padding:20px"><div style="display:flex;gap:30px;min-width:max-content"><div><h3 style="text-align:center">16avos de Final</h3><div style="display:flex;flex-direction:column;gap:15px">';
+      for (const l of llave) {
+        html += `<div style="border:1px solid #ccc;padding:10px;border-radius:5px;min-width:160px"><div style="padding:8px;background:#f5f5f5;margin-bottom:5px;border-radius:3px;font-weight:bold">${l.eq1}</div><div style="padding:8px;background:#f5f5f5;border-radius:3px;font-weight:bold">${l.eq2}</div></div>`;
+      }
+      html += '</div></div><div><h3 style="text-align:center">Octavos</h3><div style="text-align:center;color:#999;padding:20px">Próximamente</div></div></div></div>';
+      content.innerHTML = html;
+    };
       if(!state.config) {
         appEl.innerHTML = `
           <div style="text-align:center;margin-bottom:40px;">
@@ -542,6 +596,7 @@
         else if(state.tab === 'tabla') renderTabla(content);
         else if(state.tab === 'reglas') renderReglas(content);
         else if(state.tab === 'estadisticas') renderEstadisticas(content);
+        else if(state.tab === 'fase2') renderFase2(content);
         else if(state.tab === 'admin') renderAdmin(content);
       }
     }
