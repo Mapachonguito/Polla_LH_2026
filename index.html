@@ -473,7 +473,7 @@
 
     function render() {
 
-    // ===== FASE 2: Funciones para llave de 16avos =====
+    // ===== FASE 2: Llave de 16avos con nombres reales =====
     function calcularRankingGrupos() {
       const grupos = {};
       for (let i = 0; i < state.matches.length; i++) {
@@ -504,26 +504,47 @@
     function generarLlaveFase2() {
       const ranking = calcularRankingGrupos();
       const matchups = [
-        {'1':'A','2':'B'},{'1':'B','2':'A'},{'1':'C','2':'D'},{'1':'D','2':'C'},
-        {'1':'E','2':'F'},{'1':'F','2':'E'},{'1':'G','2':'H'},{'1':'H','2':'G'},
-        {'1':'I','2':'J'},{'1':'J','2':'I'},{'1':'K','2':'L'},{'1':'L','2':'K'}
+        {pos1:'1',g1:'E',pos2:'3',g2:'ABCDF',num:1},
+        {pos1:'1',g1:'I',pos2:'3',g2:'CDFGH',num:2},
+        {pos1:'1',g1:'A',pos2:'2',g2:'B',num:3},
+        {pos1:'1',g1:'B',pos2:'2',g2:'A',num:4},
+        {pos1:'1',g1:'C',pos2:'2',g2:'D',num:5},
+        {pos1:'1',g1:'D',pos2:'2',g2:'C',num:6},
+        {pos1:'1',g1:'F',pos2:'3',g2:'AEHIJ',num:7},
+        {pos1:'1',g1:'J',pos2:'3',g2:'BEFHIJ',num:8},
+        {pos1:'1',g1:'G',pos2:'2',g2:'H',num:9},
+        {pos1:'1',g1:'H',pos2:'2',g2:'G',num:10},
+        {pos1:'1',g1:'K',pos2:'2',g2:'L',num:11},
+        {pos1:'1',g1:'L',pos2:'2',g2:'K',num:12}
       ];
       const llave = [];
       for (const m of matchups) {
-        const g1 = m['1'], g2 = m['2'];
-        const eq1 = ranking[g1] && ranking[g1][0] ? ranking[g1][0].equipo : '?';
-        const eq2 = ranking[g2] && ranking[g2][1] ? ranking[g2][1].equipo : '?';
-        llave.push({eq1, eq2});
+        let eq1 = '?', eq2 = '?';
+        if (m.pos1 === '1') {
+          eq1 = ranking[m.g1] && ranking[m.g1][0] ? ranking[m.g1][0].equipo : '?';
+        }
+        if (m.pos2 === '2') {
+          eq2 = ranking[m.g2] && ranking[m.g2][1] ? ranking[m.g2][1].equipo : '?';
+        } else if (m.pos2 === '3') {
+          eq2 = '3 ' + m.g2;
+        }
+        llave.push({eq1, eq2, num: m.num});
       }
       return llave;
     }
     window.renderFase2 = function(content) {
       const llave = generarLlaveFase2();
-      let html = '<div style="overflow-x:auto;padding:20px"><div style="display:flex;gap:30px;min-width:max-content"><div><h3 style="text-align:center">16avos de Final</h3><div style="display:flex;flex-direction:column;gap:15px">';
+      let html = '<div style="overflow-x:auto;padding:20px"><div style="display:flex;gap:40px;min-width:max-content"><div><h3 style="text-align:center;margin-bottom:20px">16avos de Final</h3><div style="display:flex;flex-direction:column;gap:20px">';
       for (const l of llave) {
-        html += `<div style="border:1px solid #ccc;padding:10px;border-radius:5px;min-width:160px"><div style="padding:8px;background:#f5f5f5;margin-bottom:5px;border-radius:3px;font-weight:bold">${l.eq1}</div><div style="padding:8px;background:#f5f5f5;border-radius:3px;font-weight:bold">${l.eq2}</div></div>`;
+        html += `<div>
+          <div style="font-size:12px;color:#666;margin-bottom:5px;font-weight:bold">Partido ${l.num}</div>
+          <div style="border:2px solid #333;border-radius:6px;overflow:hidden">
+            <div style="padding:10px;background:#f8f8f8;border-bottom:2px solid #333;min-width:180px;font-weight:bold">${l.eq1}</div>
+            <div style="padding:10px;background:#f8f8f8;min-width:180px;font-weight:bold">${l.eq2}</div>
+          </div>
+        </div>`;
       }
-      html += '</div></div><div><h3 style="text-align:center">Octavos</h3><div style="text-align:center;color:#999;padding:20px">Próximamente</div></div></div></div>';
+      html += '</div></div><div><h3 style="text-align:center;margin-bottom:20px">Octavos</h3><div style="text-align:center;color:#999;padding:30px">Próximamente</div></div></div></div>';
       content.innerHTML = html;
     };
       if(!state.config) {
@@ -596,6 +617,7 @@
         else if(state.tab === 'tabla') renderTabla(content);
         else if(state.tab === 'reglas') renderReglas(content);
         else if(state.tab === 'estadisticas') renderEstadisticas(content);
+        else if(state.tab === 'fase2') renderFase2(content);
         else if(state.tab === 'fase2') renderFase2(content);
         else if(state.tab === 'admin') renderAdmin(content);
       }
