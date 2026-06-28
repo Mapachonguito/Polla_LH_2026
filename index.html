@@ -466,7 +466,7 @@
     function fmtMoney(n, c) { try { return new Intl.NumberFormat("es-CL", { style: "currency", currency: c||"CLP", maximumFractionDigits: 0 }).format(Math.round(n||0)); } catch { return "$"+Math.round(n||0); } }
 
     function renderNav() {
-      const tabs = [{ id: 'partidos', label: 'Partidos' }, { id: 'resumen', label: 'Resumen' }, { id: 'tabla', label: 'Tabla' }, { id: 'estadisticas', label: 'Estadísticas' }, { id: 'fase2', label: 'Fase 2' }, { id: 'reglas', label: 'Reglas' }];
+      const tabs = [{ id: 'partidos', label: 'Partidos' }, { id: 'resumen', label: 'Resumen' }, { id: 'tabla', label: 'Tabla' }, { id: 'estadisticas', label: 'Estadísticas' }, { id: 'reglas', label: 'Reglas' }];
       if(state.me && state.users[state.me]?.role === 'admin') tabs.push({ id: 'admin', label: 'Admin' });
       navEl.innerHTML = tabs.map(t => `<button class="nav-btn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.label}</button>`).join('');
     }
@@ -475,89 +475,10 @@
     // ===== FASE 2 =====
     function calcularRankingGrupos(){const g={};for(let i=0;i<state.matches.length;i++){const m=state.matches[i];if(!g[m.group_name])g[m.group_name]={}}for(let i=0;i<state.matches.length;i++){const m=state.matches[i],gr=m.group_name;if(!g[gr][m.home])g[gr][m.home]={equipo:m.home,pts:0,gf:0,gc:0};if(!g[gr][m.away])g[gr][m.away]={equipo:m.away,pts:0,gf:0,gc:0};if(m.finished&&m.homescore!==null){const hs=parseInt(m.homescore)||0,as=parseInt(m.awayscore)||0;g[gr][m.home].gf+=hs;g[gr][m.home].gc+=as;g[gr][m.away].gf+=as;g[gr][m.away].gc+=hs;if(hs>as)g[gr][m.home].pts+=3;else if(as>hs)g[gr][m.away].pts+=3;else{g[gr][m.home].pts+=1;g[gr][m.away].pts+=1}}}const c={};for(const[gn,eq]of Object.entries(g)){const a=Object.values(eq).sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf);c[gn]=a}return c}
     function generarLlaveFase2(){const r=calcularRankingGrupos(),m=[{p1:'1',g1:'E',p2:'3',g2:'ABCDF',n:1},{p1:'1',g1:'I',p2:'3',g2:'CDFGH',n:2},{p1:'1',g1:'A',p2:'2',g2:'B',n:3},{p1:'1',g1:'B',p2:'2',g2:'A',n:4},{p1:'1',g1:'C',p2:'2',g2:'D',n:5},{p1:'1',g1:'D',p2:'2',g2:'C',n:6},{p1:'1',g1:'F',p2:'3',g2:'AEHIJ',n:7},{p1:'1',g1:'J',p2:'3',g2:'BEFHIJ',n:8},{p1:'1',g1:'G',p2:'2',g2:'H',n:9},{p1:'1',g1:'H',p2:'2',g2:'G',n:10},{p1:'1',g1:'K',p2:'2',g2:'L',n:11},{p1:'1',g1:'L',p2:'2',g2:'K',n:12}];const l=[];for(const x of m){let e1='?',e2='?';if(r[x.g1]&&r[x.g1][0])e1=r[x.g1][0].equipo;if(x.p2==='2'&&r[x.g2]&&r[x.g2][1])e2=r[x.g2][1].equipo;else if(x.p2==='3')e2='3 '+x.g2;l.push({e1,e2,n:x.n})}return l}
-    function renderFase2(el){
-      const llave = generarLlaveFase2();
-      let html = '<div style="overflow-x:auto; padding: 20px; position: relative;">';
-      html += '<div style="display:flex; gap:50px; min-width: 2000px; position: relative;">';
-      
-      // SVG para las líneas
-      html += '<svg width="1800" height="700" style="position:absolute; top:0; left:0; pointer-events:none;"><defs><style>.line{stroke:#999;stroke-width:1;fill:none}</style></defs>';
-      
-      // 16avos → Octavos
-      for(let i=0;i<8;i++){
-        let y1 = 40 + i*80;
-        let y2 = 40 + (i*2+1)*40;
-        html += '<line x1="210" y1="'+y1+'" x2="240" y2="'+y1+'" class="line"/>';
-        html += '<line x1="240" y1="'+y1+'" x2="240" y2="'+y2+'" class="line"/>';
-        html += '<line x1="240" y1="'+y2+'" x2="270" y2="'+y2+'" class="line"/>';
-      }
-      
-      // Octavos → Cuartos
-      for(let i=0;i<4;i++){
-        let y1 = 40 + i*160;
-        let y2 = 40 + (i*2+1)*80;
-        html += '<line x1="460" y1="'+y1+'" x2="490" y2="'+y1+'" class="line"/>';
-        html += '<line x1="490" y1="'+y1+'" x2="490" y2="'+y2+'" class="line"/>';
-        html += '<line x1="490" y1="'+y2+'" x2="520" y2="'+y2+'" class="line"/>';
-      }
-      
-      // Cuartos → Semis
-      for(let i=0;i<2;i++){
-        let y1 = 40 + i*320;
-        let y2 = 40 + (i*2+1)*160;
-        html += '<line x1="710" y1="'+y1+'" x2="740" y2="'+y1+'" class="line"/>';
-        html += '<line x1="740" y1="'+y1+'" x2="740" y2="'+y2+'" class="line"/>';
-        html += '<line x1="740" y1="'+y2+'" x2="770" y2="'+y2+'" class="line"/>';
-      }
-      
-      // Semis → Final
-      html += '<line x1="960" y1="40" x2="990" y2="40" class="line"/>';
-      html += '<line x1="990" y1="40" x2="990" y2="200" class="line"/>';
-      html += '<line x1="990" y1="200" x2="1020" y2="200" class="line"/>';
-      html += '<line x1="960" y1="360" x2="990" y2="360" class="line"/>';
-      html += '<line x1="990" y1="360" x2="990" y2="200" class="line"/>';
-      
-      html += '</svg>';
-      
-      // 16avos
-      html += '<div style="position:relative; z-index:1;"><h3 style="font-size:12px; margin-bottom:10px; text-align:center;">16avos</h3>';
-      for(let i=0; i<llave.length; i++){
-        let x = llave[i];
-        html += '<div style="border:1px solid #333; border-radius:4px; padding:8px; margin-bottom:5px; background:#f8f8f8; color:#000; font-size:11px; font-weight:bold; min-width:140px;">';
-        html += x.e1 + '<div style="border-top:1px solid #333; margin-top:3px; padding-top:3px;">'+x.e2+'</div></div>';
-      }
-      html += '</div>';
-      
-      // Octavos
-      html += '<div style="position:relative; z-index:1;"><h3 style="font-size:12px; margin-bottom:10px; text-align:center;">Octavos</h3>';
-      for(let i=0; i<8; i++){
-        html += '<div style="border:1px dashed #999; border-radius:4px; padding:8px; margin-bottom:5px; color:#999; font-size:11px; min-width:140px; text-align:center;">-</div>';
-      }
-      html += '</div>';
-      
-      // Cuartos
-      html += '<div style="position:relative; z-index:1;"><h3 style="font-size:12px; margin-bottom:10px; text-align:center;">Cuartos</h3>';
-      for(let i=0; i<4; i++){
-        html += '<div style="border:1px dashed #999; border-radius:4px; padding:8px; margin-bottom:5px; color:#999; font-size:11px; min-width:140px; text-align:center;">-</div>';
-      }
-      html += '</div>';
-      
-      // Semis
-      html += '<div style="position:relative; z-index:1;"><h3 style="font-size:12px; margin-bottom:10px; text-align:center;">Semis</h3>';
-      for(let i=0; i<2; i++){
-        html += '<div style="border:1px dashed #999; border-radius:4px; padding:8px; margin-bottom:5px; color:#999; font-size:11px; min-width:140px; text-align:center;">-</div>';
-      }
-      html += '</div>';
-      
-      // Final
-      html += '<div style="position:relative; z-index:1;"><h3 style="font-size:12px; margin-bottom:10px; text-align:center;">Final</h3>';
-      html += '<div style="border:1px dashed #999; border-radius:4px; padding:8px; color:#999; font-size:11px; min-width:140px; text-align:center;">-</div>';
-      html += '</div>';
-      
-      html += '</div></div>';
-      el.innerHTML = html;
-    }
-        function render() {
+    function renderFase2(el){const l=generarLlaveFase2();let h='<div style="overflow-x:auto;padding:20px"><div style="display:flex;gap:40px;min-width:max-content"><div><h3 style="text-align:center;margin-bottom:20px">16avos de Final</h3><div style="display:flex;flex-direction:column;gap:20px">';for(let i=0;i<l.length;i++){const x=l[i];h+='<div><div style="font-size:12px;color:#666;margin-bottom:5px;font-weight:bold">Partido '+x.n+'</div><div style="border:2px solid #333;border-radius:6px;overflow:hidden"><div style="padding:10px;background:#f8f8f8;border-bottom:2px solid #333;min-width:180px;font-weight:bold;color:#000">'+x.e1+'</div><div style="padding:10px;background:#f8f8f8;min-width:180px;font-weight:bold;color:#000">'+x.e2+'</div></div></div>'}h+='</div></div><div><h3 style="text-align:center;margin-bottom:20px">Octavos</h3><div style="text-align:center;color:#999;padding:30px">Próximamente</div></div></div></div>';el.innerHTML=h}
+
+
+    function render() {
       if(!state.config) {
         appEl.innerHTML = `
           <div style="text-align:center;margin-bottom:40px;">
@@ -628,8 +549,6 @@
         else if(state.tab === 'tabla') renderTabla(content);
         else if(state.tab === 'reglas') renderReglas(content);
         else if(state.tab === 'estadisticas') renderEstadisticas(content);
-        else if(state.tab === 'fase2') renderFase2(content);
-        else if(state.tab === 'fase2') renderFase2(content);
         else if(state.tab === 'admin') renderAdmin(content);
       }
     }
