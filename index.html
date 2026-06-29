@@ -1470,7 +1470,7 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       if((home === undefined || home === '') || (away === undefined || away === '') || !datetime) return alert('Llena todos los campos');
       if(home === away) return alert('❌ No puedes usar el mismo país en ambos equipos');
       
-      const newId = 'm' + (state.matches.length + 1);
+      const newId = 'm' + Date.now() + Math.random().toString(36).substr(2, 9);
       await sb.from('matches').insert([{ 
         id: newId, 
         home, 
