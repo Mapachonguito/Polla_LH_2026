@@ -1382,7 +1382,8 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       const u = state.users[uid];
       u.paid = !u.paid;
       await sb.from('users').update({ paid: u.paid }).eq('id', uid);
-      render();
+      state.users[uid].paid = u.paid; // Asegura que el estado local se actualiza
+      render(); // Renderiza todo nuevamente
     };
 
     window.showPassword = function(uid) {
