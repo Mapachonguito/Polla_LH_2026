@@ -802,7 +802,7 @@
       
       html += `<h2 style="margin-top:20px;margin-bottom:12px;">Tabla de Posiciones</h2>`;
       
-      const rows = Object.keys(state.users).map(uid => {
+      const rows = Object.keys(state.users).filter(uid => state.users[uid].paid).map(uid => {
         const u = state.users[uid];
         
         // Calcular puntos CORRECTAMENTE
