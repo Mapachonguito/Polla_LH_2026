@@ -156,13 +156,6 @@
     window.logPredictionHistory = async function(matchId, predictionOld, predictionNew, action) {
       if(!state.me) return;
       
-      // NO guardar si anterior === nueva Y NO es un DELETE
-      // Permitir CREATE aunque sea el mismo valor (porque puede haber sido borrado antes)
-      if(action !== 'delete' && predictionOld === predictionNew) {
-        console.log('⏭️ Saltando: predicción sin cambios');
-        return;
-      }
-      
       const match = state.matches.find(m => m.id === matchId);
       if(!match) return;
       
@@ -174,7 +167,7 @@
         away: match.away,
         prediction_old: predictionOld || null,
         prediction_new: predictionNew || null,
-        action: action // "create", "update", "delete"
+        action: action
       };
       
       try {
@@ -198,11 +191,9 @@
       }
     };
 
-    window.savePredictionComplete = async function(mid) {
+    window.saveMatchChanges = async function(mid) {
       let h = document.getElementById(`h_${mid}`)?.value;
       let a = document.getElementById(`a_${mid}`)?.value;
-      
-      console.log(`🔍 savePredictionComplete: h=${h}, a=${a}`);
       
       // Limpiar valores
       if(h !== undefined && h !== '') h = String(parseInt(h));
@@ -217,57 +208,53 @@
         document.getElementById(`a_${mid}`).value = '';
       }
       
-      console.log(`📝 Después limpieza: h=${h}, a=${a}`);
-      
       try {
-        // Obtener predicción anterior
         const oldPred = state.preds[state.me + '::' + mid];
         const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
         
-        console.log(`🔄 oldPredStr=${oldPredStr}`);
+        // Detectar si hay cambio (uno o ambos)
+        const hasChange = (h !== undefined && h !== '') || (a !== undefined && a !== '');
+        const isDelete = !h && !a;
         
-        if((h === undefined || h === '') && (a === undefined || a === '')) {
-          // BORRAR
-          console.log(`❌ Borrando predicción para ${mid}`);
-          
-          if(oldPredStr) {
-            await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
-          }
-          
+        // SOLO registrar si hay cambio real
+        if(isDelete && oldPredStr) {
+          // ELIMINAR
+          await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
           delete state.preds[state.me + '::' + mid];
           await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
-        } else if(h !== undefined && h !== '' && a !== undefined && a !== '') {
-          // AMBOS CAMPOS COMPLETOS
-          const newPredStr = `${h}-${a}`;
-          console.log(`✅ Guardando: ${oldPredStr} → ${newPredStr}`);
+        } else if(hasChange) {
+          // HAY CAMBIO (uno o ambos campos)
+          const newPredStr = (h ? h : '?') + '-' + (a ? a : '?');
           
-          state.preds[state.me + '::' + mid] = {home: +h, away: +a};
-          const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
-          
-          if(exist.data?.length) {
-            // UPDATE
-            await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+          // Si ambos están, guardar en BD
+          if(h && a) {
+            state.preds[state.me + '::' + mid] = {home: +h, away: +a};
+            const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
             
-            // Registrar en historial SOLO si cambió
-            if(oldPredStr !== newPredStr) {
-              console.log(`📊 Registrando UPDATE en historial`);
-              await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
+            if(exist.data?.length) {
+              await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+            } else {
+              const insertData = {
+                userid: String(state.me),
+                matchid: String(mid),
+                homescore: parseInt(h),
+                awayscore: parseInt(a)
+              };
+              await sb.from('predictions').insert([insertData]);
             }
-          } else {
-            // CREATE
-            const insertData = {
-              userid: String(state.me),
-              matchid: String(mid),
-              homescore: parseInt(h),
-              awayscore: parseInt(a)
-            };
-            await sb.from('predictions').insert([insertData]);
-            console.log(`📊 Registrando CREATE en historial`);
+          }
+          
+          // REGISTRAR el cambio en historial
+          if(!oldPredStr) {
+            // PRIMERA APUESTA - SIEMPRE REGISTRA
             await window.logPredictionHistory(mid, null, newPredStr, 'create');
+          } else if(oldPredStr !== newPredStr) {
+            // CAMBIO - SOLO SI CAMBIÓ
+            await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
           }
         }
       } catch(e) {
-        console.error('❌ Error en savePredictionComplete:', e);
+        console.error('❌ Error:', e);
       }
     };
 
@@ -740,7 +727,7 @@
       filtered.forEach(m => {
         const p = state.preds[state.me + '::' + m.id] || state.pendingSaves[m.id] || {};
         const locked = isLocked(m);
-        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', true)" onblur="savePredictionComplete('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', false)" onblur="savePredictionComplete('${m.id}')" ${locked?'disabled':''}></div></div>`;
+        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', true)" onblur="saveMatchChanges('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', false)" onblur="saveMatchChanges('${m.id}')" ${locked?'disabled':''}></div></div>`;
       });
       
       el.innerHTML = html;
