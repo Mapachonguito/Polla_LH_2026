@@ -156,6 +156,12 @@
     window.logPredictionHistory = async function(matchId, predictionOld, predictionNew, action) {
       if(!state.me) return;
       
+      // NO guardar si anterior === nueva (evita duplicados)
+      if(predictionOld === predictionNew) {
+        console.log('⏭️ Saltando: predicción sin cambios');
+        return;
+      }
+      
       const match = state.matches.find(m => m.id === matchId);
       if(!match) return;
       
@@ -175,6 +181,19 @@
         console.log('✅ Historial registrado:', action, predictionOld, '→', predictionNew);
       } catch(e) {
         console.error('❌ Error registrando historial:', e);
+      }
+    };
+
+    window.deleteHistoryRecord = async function(recordId) {
+      if(!confirm('¿Eliminar este registro del historial?')) return;
+      
+      try {
+        await sb.from('predictions_history').delete().eq('id', recordId);
+        console.log('✅ Registro eliminado');
+        renderAdmin(document.getElementById('content'));
+      } catch(e) {
+        console.error('❌ Error eliminando registro:', e);
+        alert('Error al eliminar: ' + e.message);
       }
     };
 
@@ -208,50 +227,43 @@
         const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
         
         if((h === undefined || h === '') && (a === undefined || a === '')) {
+          // BORRAR
           console.log(`❌ Borrando predicción para ${mid}`);
           
-          // Registrar en historial
           if(oldPredStr) {
             await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
           }
           
           delete state.preds[state.me + '::' + mid];
           const delResult = await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
-          console.log('Delete result:', delResult);
         } else if(h !== undefined && h !== '' && a !== undefined && a !== '') {
-          console.log(`✅ Guardando predicción: ${h} - ${a}`);
+          // AMBOS CAMPOS COMPLETOS - guardar registro UNA SOLA VEZ
           const newPredStr = `${h}-${a}`;
+          
+          console.log(`✅ Cambio completo: ${oldPredStr || 'nuevo'} → ${newPredStr}`);
           
           state.preds[state.me + '::' + mid] = {home: +h, away: +a};
           const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
-          console.log('Existe:', exist.data?.length);
           
           if(exist.data?.length) {
-            console.log('Actualizando...');
-            
-            // Registrar en historial como UPDATE
-            await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
-            
-            const updateResult = await sb.from('predictions').update({homescore: h !== undefined && h !== '' ? +h : null, awayscore: a !== undefined && a !== '' ? +a : null}).eq('userid', state.me).eq('matchid', mid);
-            console.log('Update result:', updateResult);
+            // UPDATE - guardar SOLO si cambió
+            if(oldPredStr !== newPredStr) {
+              await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
+            }
+            const updateResult = await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
           } else {
-            console.log('Insertando...');
-            
-            // Registrar en historial como CREATE
-            const newPredStr = `${h}-${a}`;
+            // CREATE - es nueva
             await window.logPredictionHistory(mid, null, newPredStr, 'create');
-            
             const insertData = {
               userid: String(state.me),
               matchid: String(mid),
               homescore: parseInt(h),
               awayscore: parseInt(a)
             };
-            console.log('Insert data:', insertData);
             const insertResult = await sb.from('predictions').insert([insertData]);
-            console.log('Insert result:', insertResult);
           }
         }
+        // Si falta un cuadro, NO hace nada (no guarda registro)
       } catch(e) {
         console.error('❌ Error en autosavePred:', e);
       }
@@ -1083,16 +1095,16 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       const filteredHistory = filterUser ? historyData.filter(h => h.username === filterUser) : historyData;
       
       // Tabla de historial
-      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#0A0D16;border-bottom:1px solid var(--line);"><th style="padding:8px;text-align:left;color:var(--lime);">Usuario</th><th style="padding:8px;text-align:left;color:var(--lime);">Partido</th><th style="padding:8px;text-align:left;color:var(--lime);">Anterior</th><th style="padding:8px;text-align:left;color:var(--lime);">Nueva</th><th style="padding:8px;text-align:left;color:var(--lime);">Acción</th><th style="padding:8px;text-align:left;color:var(--lime);">Fecha/Hora</th></tr></thead><tbody>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#0A0D16;border-bottom:1px solid var(--line);"><th style="padding:8px;text-align:left;color:var(--lime);">Usuario</th><th style="padding:8px;text-align:left;color:var(--lime);">Partido</th><th style="padding:8px;text-align:left;color:var(--lime);">Anterior</th><th style="padding:8px;text-align:left;color:var(--lime);">Nueva</th><th style="padding:8px;text-align:left;color:var(--lime);">Acción</th><th style="padding:8px;text-align:left;color:var(--lime);">Fecha/Hora</th><th style="padding:8px;text-align:center;color:var(--lime);">Eliminar</th></tr></thead><tbody>`;
       
       if(filteredHistory.length === 0) {
-        html += `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--muted);">Sin historial aún</td></tr>`;
+        html += `<tr><td colspan="7" style="padding:12px;text-align:center;color:var(--muted);">Sin historial aún</td></tr>`;
       } else {
         filteredHistory.slice(0, 100).forEach(record => {
           const date = new Date(record.timestamp).toLocaleString('es-CL');
           const actionColor = record.action === 'create' ? 'var(--lime)' : record.action === 'update' ? '#FFD700' : '#FF5A3C';
           const actionEmoji = record.action === 'create' ? '➕' : record.action === 'update' ? '✏️' : '🗑️';
-          html += `<tr style="border-bottom:1px solid var(--line);"><td style="padding:8px;">${record.username}</td><td style="padding:8px;font-size:11px;">${record.home} vs ${record.away}</td><td style="padding:8px;color:#999;">${record.prediction_old || '—'}</td><td style="padding:8px;color:#999;">${record.prediction_new || '—'}</td><td style="padding:8px;color:${actionColor};">${actionEmoji} ${record.action}</td><td style="padding:8px;color:var(--muted);font-size:11px;">${date}</td></tr>`;
+          html += `<tr style="border-bottom:1px solid var(--line);"><td style="padding:8px;">${record.username}</td><td style="padding:8px;font-size:11px;">${record.home} vs ${record.away}</td><td style="padding:8px;color:#999;">${record.prediction_old || '—'}</td><td style="padding:8px;color:#999;">${record.prediction_new || '—'}</td><td style="padding:8px;color:${actionColor};">${actionEmoji} ${record.action}</td><td style="padding:8px;color:var(--muted);font-size:11px;">${date}</td><td style="padding:8px;text-align:center;"><button onclick="deleteHistoryRecord('${record.id}')" style="background:#FF5A3C;color:white;border:none;padding:4px 8px;border-radius:3px;font-size:11px;cursor:pointer;">🗑️</button></td></tr>`;
         });
       }
       
