@@ -212,39 +212,39 @@
         const oldPred = state.preds[state.me + '::' + mid];
         const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
         
-        // Detectar si hay cambio (uno o ambos)
-        const hasChange = (h !== undefined && h !== '') || (a !== undefined && a !== '');
-        const isDelete = !h && !a;
-        
-        // SOLO registrar si hay cambio real
-        if(isDelete && oldPredStr) {
-          // ELIMINAR
-          await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
+        // Guardar en BD SIEMPRE
+        if(!h && !a) {
+          // BORRAR
           delete state.preds[state.me + '::' + mid];
           await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
-        } else if(hasChange) {
-          // HAY CAMBIO (uno o ambos campos)
-          const newPredStr = (h ? h : '?') + '-' + (a ? a : '?');
+        } else if(h && a) {
+          // Ambos completos - guardar en BD
+          state.preds[state.me + '::' + mid] = {home: +h, away: +a};
+          const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
           
-          // Si ambos están, guardar en BD
-          if(h && a) {
-            state.preds[state.me + '::' + mid] = {home: +h, away: +a};
-            const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
-            
-            if(exist.data?.length) {
-              await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
-            } else {
-              const insertData = {
-                userid: String(state.me),
-                matchid: String(mid),
-                homescore: parseInt(h),
-                awayscore: parseInt(a)
-              };
-              await sb.from('predictions').insert([insertData]);
-            }
+          if(exist.data?.length) {
+            await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+          } else {
+            const insertData = {
+              userid: String(state.me),
+              matchid: String(mid),
+              homescore: parseInt(h),
+              awayscore: parseInt(a)
+            };
+            await sb.from('predictions').insert([insertData]);
           }
+        }
+        
+        // REGISTRAR EN HISTORIAL - SOLO SI AMBOS CAMPOS ESTÁN COMPLETOS O SE BORRA
+        if(!h && !a) {
+          // BORRAR - registra si había algo
+          if(oldPredStr) {
+            await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
+          }
+        } else if(h && a) {
+          // AMBOS COMPLETOS - registra cambio
+          const newPredStr = `${h}-${a}`;
           
-          // REGISTRAR el cambio en historial
           if(!oldPredStr) {
             // PRIMERA APUESTA - SIEMPRE REGISTRA
             await window.logPredictionHistory(mid, null, newPredStr, 'create');
@@ -253,6 +253,7 @@
             await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
           }
         }
+        // Si falta un campo, NO registra en historial (solo se guarda en BD)
       } catch(e) {
         console.error('❌ Error:', e);
       }
