@@ -156,8 +156,9 @@
     window.logPredictionHistory = async function(matchId, predictionOld, predictionNew, action) {
       if(!state.me) return;
       
-      // NO guardar si anterior === nueva (evita duplicados)
-      if(predictionOld === predictionNew) {
+      // NO guardar si anterior === nueva Y NO es un DELETE
+      // Permitir CREATE aunque sea el mismo valor (porque puede haber sido borrado antes)
+      if(action !== 'delete' && predictionOld === predictionNew) {
         console.log('⏭️ Saltando: predicción sin cambios');
         return;
       }
