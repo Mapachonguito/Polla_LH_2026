@@ -197,9 +197,11 @@
       }
     };
 
-    window.savePredictionAndLog = async function(mid) {
+    window.savePredictionComplete = async function(mid) {
       let h = document.getElementById(`h_${mid}`)?.value;
       let a = document.getElementById(`a_${mid}`)?.value;
+      
+      console.log(`🔍 savePredictionComplete: h=${h}, a=${a}`);
       
       // Limpiar valores
       if(h !== undefined && h !== '') h = String(parseInt(h));
@@ -214,22 +216,57 @@
         document.getElementById(`a_${mid}`).value = '';
       }
       
-      // Obtener predicción anterior
-      const oldPred = state.preds[state.me + '::' + mid];
-      const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
+      console.log(`📝 Después limpieza: h=${h}, a=${a}`);
       
-      // SOLO registrar si ambos campos están completos
-      if(h !== undefined && h !== '' && a !== undefined && a !== '') {
-        const newPredStr = `${h}-${a}`;
+      try {
+        // Obtener predicción anterior
+        const oldPred = state.preds[state.me + '::' + mid];
+        const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
         
-        // Registrar en historial SOLO si cambió
-        if(oldPredStr !== newPredStr) {
+        console.log(`🔄 oldPredStr=${oldPredStr}`);
+        
+        if((h === undefined || h === '') && (a === undefined || a === '')) {
+          // BORRAR
+          console.log(`❌ Borrando predicción para ${mid}`);
+          
           if(oldPredStr) {
-            await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
+            await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
+          }
+          
+          delete state.preds[state.me + '::' + mid];
+          await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
+        } else if(h !== undefined && h !== '' && a !== undefined && a !== '') {
+          // AMBOS CAMPOS COMPLETOS
+          const newPredStr = `${h}-${a}`;
+          console.log(`✅ Guardando: ${oldPredStr} → ${newPredStr}`);
+          
+          state.preds[state.me + '::' + mid] = {home: +h, away: +a};
+          const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
+          
+          if(exist.data?.length) {
+            // UPDATE
+            await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+            
+            // Registrar en historial SOLO si cambió
+            if(oldPredStr !== newPredStr) {
+              console.log(`📊 Registrando UPDATE en historial`);
+              await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
+            }
           } else {
+            // CREATE
+            const insertData = {
+              userid: String(state.me),
+              matchid: String(mid),
+              homescore: parseInt(h),
+              awayscore: parseInt(a)
+            };
+            await sb.from('predictions').insert([insertData]);
+            console.log(`📊 Registrando CREATE en historial`);
             await window.logPredictionHistory(mid, null, newPredStr, 'create');
           }
         }
+      } catch(e) {
+        console.error('❌ Error en savePredictionComplete:', e);
       }
     };
 
@@ -702,7 +739,7 @@
       filtered.forEach(m => {
         const p = state.preds[state.me + '::' + m.id] || state.pendingSaves[m.id] || {};
         const locked = isLocked(m);
-        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', true)" onblur="autosavePred('${m.id}'); savePredictionAndLog('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', false)" onblur="autosavePred('${m.id}'); savePredictionAndLog('${m.id}')" ${locked?'disabled':''}></div></div>`;
+        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', true)" onblur="savePredictionComplete('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', false)" onblur="savePredictionComplete('${m.id}')" ${locked?'disabled':''}></div></div>`;
       });
       
       el.innerHTML = html;
