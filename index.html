@@ -132,27 +132,22 @@
 
 
     window.saveAllMatches = async function() {
-      // Guarda TODOS los partidos al cambiar pestaña, actualizar o cerrar
-      const allInputs = document.querySelectorAll('input[id^="h_"]');
-      for(const input of allInputs) {
-        const matchId = input.id.replace('h_', '');
-        await window.saveAndLogMatch(matchId);
+      try {
+        // Guarda TODOS los partidos al cambiar pestaña, actualizar o cerrar
+        const allInputs = document.querySelectorAll('input[id^="h_"]');
+        for(const input of allInputs) {
+          const matchId = input.id.replace('h_', '');
+          try {
+            await window.saveAndLogMatch(matchId);
+          } catch(e) {
+            // Silenciar errores individuales
+            console.error('Error guardando match ' + matchId, e);
+          }
+        }
+      } catch(e) {
+        console.error('Error en saveAllMatches:', e);
       }
     };
-
-    // Guardar cuando cambias de pestaña (invisible)
-    document.addEventListener('visibilitychange', async function() {
-      if(document.hidden) {
-        console.log('🔄 Pestaña oculta - guardando cambios...');
-        await window.saveAllMatches();
-      }
-    });
-
-    // Guardar cuando actualizas (F5) o cierras la polla
-    window.addEventListener('beforeunload', async function() {
-      console.log('🔄 Actualizando/Cerrando - guardando cambios...');
-      await window.saveAllMatches();
-    });
 
     window.handleMatchInput = function(matchId, isHome) {
       const homeInput = document.getElementById(`h_${matchId}`);
@@ -534,6 +529,20 @@
           if(cambio) render(); // Solo re-renderizar si cambió el estado de bloqueo
         }
       }, 500); // Verificar cada 500ms para ser más rápido
+      
+      // Guardar cuando cambias de pestaña
+      document.addEventListener('visibilitychange', async function() {
+        if(document.hidden && state.me) {
+          await window.saveAllMatches();
+        }
+      });
+
+      // Guardar cuando actualizas (F5) o cierras
+      window.addEventListener('beforeunload', async function() {
+        if(state.me) {
+          await window.saveAllMatches();
+        }
+      });
     }
 
     function actualizarReloj() {
