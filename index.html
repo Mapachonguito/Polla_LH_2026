@@ -153,6 +153,8 @@
       console.log('🔄 Actualizando/Cerrando - guardando cambios...');
       await window.saveAllMatches();
     });
+
+    window.handleMatchInput = function(matchId, isHome) {
       const homeInput = document.getElementById(`h_${matchId}`);
       const awayInput = document.getElementById(`a_${matchId}`);
       
