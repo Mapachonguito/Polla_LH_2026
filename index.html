@@ -1062,30 +1062,33 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
       // HISTORIAL DE APUESTAS
       html += `<div class="admin-section"><h3>📋 Historial de Apuestas</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Registro de todos los cambios realizados por los participantes</p>`;
       
-      // Filtro por usuario
-      const usersList = Object.keys(state.users).map(uid => state.users[uid].username);
-      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Filtrar por Usuario</label>`;
-      html += `<select id="historyFilterUser" onchange="renderAdmin(document.getElementById('content'))" style="width:100%;margin-bottom:12px;"><option value="">-- Todos los usuarios --</option>${usersList.map(u => `<option value="${u}">${u}</option>`).join('')}</select>`;
-      
-      // Cargar historial desde Supabase
-      const filterUser = document.getElementById('historyFilterUser')?.value || '';
+      // Cargar historial desde Supabase primero
       let historyData = [];
+      let uniqueUsers = [];
       try {
-        const q = filterUser 
-          ? await sb.from('predictions_history').select('*').eq('username', filterUser).order('timestamp', { ascending: false })
-          : await sb.from('predictions_history').select('*').order('timestamp', { ascending: false });
+        const q = await sb.from('predictions_history').select('*').order('timestamp', { ascending: false }).limit(1000);
         historyData = q.data || [];
+        // Extraer usuarios únicos del historial
+        uniqueUsers = [...new Set(historyData.map(h => h.username))].sort();
       } catch(e) {
         console.error('Error loading history:', e);
       }
       
+      // Filtro por usuario
+      html += `<label style="font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">Filtrar por Usuario</label>`;
+      html += `<select id="historyFilterUser" onchange="renderAdmin(document.getElementById('content'))" style="width:100%;margin-bottom:12px;"><option value="">-- Todos los usuarios --</option>${uniqueUsers.map(u => `<option value="${u}">${u}</option>`).join('')}</select>`;
+      
+      // Aplicar filtro si está seleccionado
+      const filterUser = document.getElementById('historyFilterUser')?.value || '';
+      const filteredHistory = filterUser ? historyData.filter(h => h.username === filterUser) : historyData;
+      
       // Tabla de historial
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#0A0D16;border-bottom:1px solid var(--line);"><th style="padding:8px;text-align:left;color:var(--lime);">Usuario</th><th style="padding:8px;text-align:left;color:var(--lime);">Partido</th><th style="padding:8px;text-align:left;color:var(--lime);">Anterior</th><th style="padding:8px;text-align:left;color:var(--lime);">Nueva</th><th style="padding:8px;text-align:left;color:var(--lime);">Acción</th><th style="padding:8px;text-align:left;color:var(--lime);">Fecha/Hora</th></tr></thead><tbody>`;
       
-      if(historyData.length === 0) {
+      if(filteredHistory.length === 0) {
         html += `<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--muted);">Sin historial aún</td></tr>`;
       } else {
-        historyData.slice(0, 100).forEach(record => {
+        filteredHistory.slice(0, 100).forEach(record => {
           const date = new Date(record.timestamp).toLocaleString('es-CL');
           const actionColor = record.action === 'create' ? 'var(--lime)' : record.action === 'update' ? '#FFD700' : '#FF5A3C';
           const actionEmoji = record.action === 'create' ? '➕' : record.action === 'update' ? '✏️' : '🗑️';
