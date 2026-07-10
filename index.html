@@ -197,6 +197,42 @@
       }
     };
 
+    window.savePredictionAndLog = async function(mid) {
+      let h = document.getElementById(`h_${mid}`)?.value;
+      let a = document.getElementById(`a_${mid}`)?.value;
+      
+      // Limpiar valores
+      if(h !== undefined && h !== '') h = String(parseInt(h));
+      if(a !== undefined && a !== '') a = String(parseInt(a));
+      
+      if(h !== undefined && h !== '' && parseInt(h) < 0) { 
+        h = '';
+        document.getElementById(`h_${mid}`).value = '';
+      }
+      if(a !== undefined && a !== '' && parseInt(a) < 0) { 
+        a = '';
+        document.getElementById(`a_${mid}`).value = '';
+      }
+      
+      // Obtener predicción anterior
+      const oldPred = state.preds[state.me + '::' + mid];
+      const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
+      
+      // SOLO registrar si ambos campos están completos
+      if(h !== undefined && h !== '' && a !== undefined && a !== '') {
+        const newPredStr = `${h}-${a}`;
+        
+        // Registrar en historial SOLO si cambió
+        if(oldPredStr !== newPredStr) {
+          if(oldPredStr) {
+            await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
+          } else {
+            await window.logPredictionHistory(mid, null, newPredStr, 'create');
+          }
+        }
+      }
+    };
+
     window.autosavePred = async function(mid) {
       let h = document.getElementById(`h_${mid}`)?.value;
       let a = document.getElementById(`a_${mid}`)?.value;
@@ -222,38 +258,20 @@
       }
       
       try {
-        // Obtener predicción anterior
-        const oldPred = state.preds[state.me + '::' + mid];
-        const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
-        
         if((h === undefined || h === '') && (a === undefined || a === '')) {
-          // BORRAR
           console.log(`❌ Borrando predicción para ${mid}`);
-          
-          if(oldPredStr) {
-            await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
-          }
           
           delete state.preds[state.me + '::' + mid];
           const delResult = await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
         } else if(h !== undefined && h !== '' && a !== undefined && a !== '') {
-          // AMBOS CAMPOS COMPLETOS - guardar registro UNA SOLA VEZ
-          const newPredStr = `${h}-${a}`;
-          
-          console.log(`✅ Cambio completo: ${oldPredStr || 'nuevo'} → ${newPredStr}`);
+          console.log(`💾 Guardando en BD: ${h}-${a}`);
           
           state.preds[state.me + '::' + mid] = {home: +h, away: +a};
           const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
           
           if(exist.data?.length) {
-            // UPDATE - guardar SOLO si cambió
-            if(oldPredStr !== newPredStr) {
-              await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
-            }
             const updateResult = await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
           } else {
-            // CREATE - es nueva
-            await window.logPredictionHistory(mid, null, newPredStr, 'create');
             const insertData = {
               userid: String(state.me),
               matchid: String(mid),
@@ -263,7 +281,6 @@
             const insertResult = await sb.from('predictions').insert([insertData]);
           }
         }
-        // Si falta un cuadro, NO hace nada (no guarda registro)
       } catch(e) {
         console.error('❌ Error en autosavePred:', e);
       }
@@ -685,7 +702,7 @@
       filtered.forEach(m => {
         const p = state.preds[state.me + '::' + m.id] || state.pendingSaves[m.id] || {};
         const locked = isLocked(m);
-        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', true)" onchange="autosavePred('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', false)" onchange="autosavePred('${m.id}')" ${locked?'disabled':''}></div></div>`;
+        html += `<div class="match ${locked?'':''}"><div class="match-header">${m.home} vs ${m.away} <span style="color:var(--muted);">Grupo ${m.group_name}</span></div><div class="match-date">📅 ${fmtDate(m.datetime)}</div><div class="match-inputs" ${locked?'style="opacity:0.5;"':''}><input type="number" id="h_${m.id}" value="${p.home !== undefined && p.home !== null ? p.home : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', true)" onblur="autosavePred('${m.id}'); savePredictionAndLog('${m.id}')" ${locked?'disabled':''}><span>:</span><input type="number" id="a_${m.id}" value="${p.away !== undefined && p.away !== null ? p.away : ''}" min="0" max="99" oninput="handleMatchInput('${m.id}', false)" onblur="autosavePred('${m.id}'); savePredictionAndLog('${m.id}')" ${locked?'disabled':''}></div></div>`;
       });
       
       el.innerHTML = html;
