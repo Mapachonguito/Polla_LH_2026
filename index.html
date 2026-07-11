@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Polla Mundial 2026</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%23C9FF3D;stop-opacity:1' /><stop offset='100%' style='stop-color:%2386F73B;stop-opacity:1' /></linearGradient></defs><rect fill='url(%23grad)' width='200' height='200' rx='40'/><circle cx='100' cy='100' r='60' fill='%230A0D16'/><circle cx='100' cy='100' r='50' fill='white'/><path d='M70,90 Q100,120 130,90' stroke='%230A0D16' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='85' cy='85' r='4' fill='%230A0D16'/><circle cx='115' cy='85' r='4' fill='%230A0D16'/></svg>">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -149,7 +150,7 @@
 
     window.saveAllMatches = async function() {
       try {
-        // Guarda TODOS los partidos al cambiar pestaña, actualizar o cerrar
+        // SOLO guarda inputs que existen en el DOM
         const allInputs = document.querySelectorAll('input[id^="h_"]');
         for(const input of allInputs) {
           const matchId = input.id.replace('h_', '');
@@ -157,11 +158,10 @@
             await window.saveAndLogMatch(matchId);
           } catch(e) {
             // Silenciar errores individuales
-            console.error('Error guardando match ' + matchId, e);
           }
         }
       } catch(e) {
-        console.error('Error en saveAllMatches:', e);
+        // Silenciar
       }
     };
 
@@ -178,19 +178,25 @@
     };
 
     window.saveAndLogMatch = async function(mid) {
-      let h = document.getElementById(`h_${mid}`)?.value || '';
-      let a = document.getElementById(`a_${mid}`)?.value || '';
+      const hInput = document.getElementById(`h_${mid}`);
+      const aInput = document.getElementById(`a_${mid}`);
+      
+      // NO procesar si alguno está disabled (partido bloqueado)
+      if(hInput?.disabled || aInput?.disabled) return;
+      
+      let h = hInput?.value || '';
+      let a = aInput?.value || '';
       
       if(h !== '') h = String(parseInt(h));
       if(a !== '') a = String(parseInt(a));
       
       if(h !== '' && parseInt(h) < 0) { 
         h = '';
-        document.getElementById(`h_${mid}`).value = '';
+        hInput.value = '';
       }
       if(a !== '' && parseInt(a) < 0) { 
         a = '';
-        document.getElementById(`a_${mid}`).value = '';
+        aInput.value = '';
       }
       
       try {
@@ -204,9 +210,9 @@
           state.preds[state.me + '::' + mid] = {home: +h, away: +a};
           const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
           if(exist.data?.length) {
-            await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+            await sb.from('predictions').update({homescore: h, awayscore: a}).eq('userid', state.me).eq('matchid', mid);
           } else {
-            await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: parseInt(h), awayscore: parseInt(a)}]);
+            await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: h, awayscore: a}]);
           }
         }
         
@@ -1470,30 +1476,8 @@ function renderReglas(el){const html=`<div style="padding:16px;background:var(--
     };
     
     window.saveAllPreds = async function() {
-      const allMatches = state.matches;
-      let saved = 0;
-      
-      for(const m of open) {
-        const h = document.getElementById(`h_${m.id}`)?.value;
-        const a = document.getElementById(`a_${m.id}`)?.value;
-        if(h !== undefined && h !== '' && a !== undefined && a !== '') {
-          const exist = await sb.from('predictions').select('*').eq('userId', state.me).eq('matchId', m.id);
-          const key = state.me + '::' + m.id;
-          
-          if(exist.data?.length) {
-            await sb.from('predictions').update({ homescore: h !== undefined && h !== '' ? +h : null, awayscore: a !== undefined && a !== '' ? +a : null }).eq('id', exist.data[0].id);
-          } else {
-            await sb.from('predictions').insert([{ id: Date.now() + saved + '', userId: state.me, matchId: m.id, homescore: h !== undefined && h !== '' ? +h : null, awayscore: a !== undefined && a !== '' ? +a : null }]);
-          }
-          
-          state.preds[key] = { home: +h, away: +a };
-          saved++;
-        }
-      }
-      
-      state.pendingSaves = {};
-      alert(`✓ ${saved} pronóstico(s) guardado(s)`);
-      render();
+      // Función legacy - usar saveAllMatches en su lugar
+      await window.saveAllMatches();
     };
 
     window.savePodium = function() {
