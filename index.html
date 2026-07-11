@@ -177,8 +177,14 @@
     };
 
     window.saveAndLogMatch = async function(mid) {
-      let h = document.getElementById(`h_${mid}`)?.value || '';
-      let a = document.getElementById(`a_${mid}`)?.value || '';
+      // PROTECCIÓN: No procesar si los inputs NO EXISTEN en el DOM
+      // (significa que el DOM se está destruyendo - F5, cambio de pestaña, etc)
+      const hInput = document.getElementById(`h_${mid}`);
+      const aInput = document.getElementById(`a_${mid}`);
+      if(!hInput || !aInput) return;
+      
+      let h = hInput.value || '';
+      let a = aInput.value || '';
       
       if(h !== '') h = String(parseInt(h));
       if(a !== '') a = String(parseInt(a));
