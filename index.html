@@ -178,6 +178,9 @@
     };
 
     window.saveAndLogMatch = async function(mid) {
+      // PROTECCIÓN CRÍTICA: si state.me no existe, NO hacer nada
+      if(!state.me) return;
+      
       const hInput = document.getElementById(`h_${mid}`);
       const aInput = document.getElementById(`a_${mid}`);
       
