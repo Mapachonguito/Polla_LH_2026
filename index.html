@@ -177,34 +177,49 @@
       }
     };
 
-    let isInitializing = true;  // Bandera para evitar onblur durante init
-    
+    window.saveAllMatches = async function() {
+      try {
+        // Guarda TODOS los partidos al cambiar pestaña, actualizar o cerrar
+        const allInputs = document.querySelectorAll('input[id^="h_"]');
+        for(const input of allInputs) {
+          const matchId = input.id.replace('h_', '');
+          try {
+            await window.saveAndLogMatch(matchId);
+          } catch(e) {
+            // Silenciar errores individuales
+          }
+        }
+      } catch(e) {
+        // Silenciar
+      }
+    };
+
+    window.handleMatchInput = function(matchId, isHome) {
+      const homeInput = document.getElementById(`h_${matchId}`);
+      const awayInput = document.getElementById(`a_${matchId}`);
+      
+      if(!homeInput || !awayInput) return;
+      
+      // Auto-avanza del local al visitante si escribes algo
+      if(isHome && homeInput.value) {
+        awayInput.focus();
+      }
+    };
+
     window.saveAndLogMatch = async function(mid) {
-      // PROTECCIÓN CRÍTICA: ignorar onblur durante recarga inicial
-      if(isInitializing) return;
-      
-      // PROTECCIÓN CRÍTICA: si state.me no existe, NO hacer nada
-      if(!state.me) return;
-      
-      const hInput = document.getElementById(`h_${mid}`);
-      const aInput = document.getElementById(`a_${mid}`);
-      
-      // NO procesar si alguno está disabled (partido bloqueado)
-      if(hInput?.disabled || aInput?.disabled) return;
-      
-      let h = hInput?.value || '';
-      let a = aInput?.value || '';
+      let h = document.getElementById(`h_${mid}`)?.value || '';
+      let a = document.getElementById(`a_${mid}`)?.value || '';
       
       if(h !== '') h = String(parseInt(h));
       if(a !== '') a = String(parseInt(a));
       
       if(h !== '' && parseInt(h) < 0) { 
         h = '';
-        hInput.value = '';
+        document.getElementById(`h_${mid}`).value = '';
       }
       if(a !== '' && parseInt(a) < 0) { 
         a = '';
-        aInput.value = '';
+        document.getElementById(`a_${mid}`).value = '';
       }
       
       try {
@@ -218,9 +233,9 @@
           state.preds[state.me + '::' + mid] = {home: +h, away: +a};
           const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
           if(exist.data?.length) {
-            await sb.from('predictions').update({homescore: h, awayscore: a}).eq('userid', state.me).eq('matchid', mid);
+            await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
           } else {
-            await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: h, awayscore: a}]);
+            await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: parseInt(h), awayscore: parseInt(a)}]);
           }
         }
         
@@ -237,7 +252,7 @@
       } catch(e) {
         // Silenciar
       }
-    };
+    };;
 
     window.logPredictionHistory = async function(matchId, predictionOld, predictionNew, action) {
       if(!state.me) return;
@@ -525,12 +540,8 @@
         } else {
           render();
         }
-        
-        // IMPORTANTE: Después de renderizar, permitir onblur
-        isInitializing = false;
       } catch(e) { 
-        render();
-        isInitializing = false;
+        render(); 
       }
       
       // Verificar cada segundo si hay CAMBIOS en bloqueos de partidos
@@ -556,14 +567,12 @@
       //   }
       // });
 
-      // DESHABILITADO: beforeunload causaba que se borraran apuestas
-      // Ya no se ejecuta saveAllMatches() al recargar
-      // Las apuestas se guardan con onblur en cada input
-      // window.addEventListener('beforeunload', async function() {
-      //   if(state.me) {
-      //     await window.saveAllMatches();
-      //   }
-      // });
+      // Guardar cuando actualizas (F5) o cierras
+      window.addEventListener('beforeunload', async function() {
+        if(state.me) {
+          await window.saveAllMatches();
+        }
+      });
     }
 
     function actualizarReloj() {
