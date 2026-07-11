@@ -544,12 +544,14 @@
       //   }
       // });
 
-      // Guardar cuando actualizas (F5) o cierras
-      window.addEventListener('beforeunload', async function() {
-        if(state.me) {
-          await window.saveAllMatches();
-        }
-      });
+      // DESHABILITADO: beforeunload causaba que se borraran apuestas
+      // Ya no se ejecuta saveAllMatches() al recargar
+      // Las apuestas se guardan con onblur en cada input
+      // window.addEventListener('beforeunload', async function() {
+      //   if(state.me) {
+      //     await window.saveAllMatches();
+      //   }
+      // });
     }
 
     function actualizarReloj() {
