@@ -177,7 +177,12 @@
       }
     };
 
+    let isInitializing = true;  // Bandera para evitar onblur durante init
+    
     window.saveAndLogMatch = async function(mid) {
+      // PROTECCIÓN CRÍTICA: ignorar onblur durante recarga inicial
+      if(isInitializing) return;
+      
       // PROTECCIÓN CRÍTICA: si state.me no existe, NO hacer nada
       if(!state.me) return;
       
@@ -520,8 +525,12 @@
         } else {
           render();
         }
+        
+        // IMPORTANTE: Después de renderizar, permitir onblur
+        isInitializing = false;
       } catch(e) { 
-        render(); 
+        render();
+        isInitializing = false;
       }
       
       // Verificar cada segundo si hay CAMBIOS en bloqueos de partidos
