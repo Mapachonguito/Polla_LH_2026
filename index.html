@@ -150,36 +150,6 @@
 
     window.saveAllMatches = async function() {
       try {
-        // SOLO guarda inputs que existen en el DOM
-        const allInputs = document.querySelectorAll('input[id^="h_"]');
-        for(const input of allInputs) {
-          const matchId = input.id.replace('h_', '');
-          try {
-            await window.saveAndLogMatch(matchId);
-          } catch(e) {
-            // Silenciar errores individuales
-          }
-        }
-      } catch(e) {
-        // Silenciar
-      }
-    };
-
-    window.handleMatchInput = function(matchId, isHome) {
-      const homeInput = document.getElementById(`h_${matchId}`);
-      const awayInput = document.getElementById(`a_${matchId}`);
-      
-      if(!homeInput || !awayInput) return;
-      
-      // Auto-avanza del local al visitante si escribes algo
-      if(isHome && homeInput.value) {
-        awayInput.focus();
-      }
-    };
-
-    window.saveAllMatches = async function() {
-      try {
-        // Guarda TODOS los partidos al cambiar pestaña, actualizar o cerrar
         const allInputs = document.querySelectorAll('input[id^="h_"]');
         for(const input of allInputs) {
           const matchId = input.id.replace('h_', '');
@@ -252,7 +222,7 @@
       } catch(e) {
         // Silenciar
       }
-    };;
+    };
 
     window.logPredictionHistory = async function(matchId, predictionOld, predictionNew, action) {
       if(!state.me) return;
@@ -568,11 +538,7 @@
       // });
 
       // Guardar cuando actualizas (F5) o cierras
-      window.addEventListener('beforeunload', async function() {
-        if(state.me) {
-          await window.saveAllMatches();
-        }
-      });
+      // Beforeunload removido - no es necesario para Amigos
     }
 
     function actualizarReloj() {
