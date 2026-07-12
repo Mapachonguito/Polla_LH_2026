@@ -451,7 +451,7 @@
         try { cfg = await sb.from('config').select('*').limit(1); } catch(e) { console.error('Error config:', e); }
         try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { }
         try { m = await sb.from('matches').select('*').order('datetime', { ascending: true }); } catch(e) { }
-        try { p = await sb.from('predictions').select('*'); alert('PREDICCIONES: ' + p.data?.length); } catch(e) { alert('ERROR: ' + e.message); }
+        try { p = await sb.from('predictions').select('*'); console.log('✅ PREDICCIONES CARGADAS:', p.data?.length, 'registros'); } catch(e) { console.error('❌ ERROR CARGANDO PREDICCIONES:', e); }
         try { pd = await sb.from('podium').select('*'); } catch(e) { }
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
@@ -469,6 +469,7 @@
         (u.data || []).forEach(x => state.users[x.id] = x);
         (m.data || []).forEach(x => state.matches.push(x));
         (p.data || []).forEach(x => state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore });
+        console.log('✅ STATE.PREDS CARGADO:', Object.keys(state.preds).length, 'predicciones en memoria');
         (pd.data || []).forEach(x => state.podium[x.userid] = { first: x.first, second: x.second, third: x.third });
         
         // Cargar sesión guardada desde localStorage
