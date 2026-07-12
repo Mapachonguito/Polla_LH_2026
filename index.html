@@ -468,7 +468,16 @@
         try { cfg = await sb.from('config').select('*').limit(1); } catch(e) { console.error('Error config:', e); }
         try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { }
         try { m = await sb.from('matches').select('*').order('datetime', { ascending: true }); } catch(e) { }
-        try { p = await sb.from('predictions').select('*').limit(10000); console.log('✅ PREDICCIONES CARGADAS:', p.data?.length, 'registros'); } catch(e) { console.error('❌ ERROR CARGANDO PREDICCIONES:', e); }
+        try { 
+          // Traer predicciones en 2 tandas porque Supabase tiene límite de 1000
+          const p1 = await sb.from('predictions').select('*').range(0, 999);
+          const p2 = await sb.from('predictions').select('*').range(1000, 1999);
+          const allPreds = [...(p1.data || []), ...(p2.data || [])];
+          p = { data: allPreds };
+          console.log('✅ PREDICCIONES CARGADAS:', p.data?.length, 'registros (tanda 1:' + (p1.data?.length || 0) + ', tanda 2:' + (p2.data?.length || 0) + ')'); 
+        } catch(e) { 
+          console.error('❌ ERROR CARGANDO PREDICCIONES:', e); 
+        }
         try { pd = await sb.from('podium').select('*'); } catch(e) { }
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
