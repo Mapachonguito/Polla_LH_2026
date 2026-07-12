@@ -86,19 +86,17 @@
   <script>
     // Suprimir TODO tipo de notificación
     const originalError = console.error;
-    // console.error = function() { };  // HABILITADO PARA DEBUG - VER ERRORES
+    console.error = function() { };  // Suprimir solo errores feos de navegador
     
     const originalAlert = window.alert;
     window.alert = function() { };  // Mantener suprimido para evitar spam
     
     const originalWarn = console.warn;
-    // console.warn = function() { };  // HABILITADO PARA DEBUG
+    console.warn = function() { };  // Suprimir warnings de navegador
     
-    // Suprimir global error handler
-    window.onerror = function() { return true; };
-    
-    // Suprimir unhandled promise rejections
-    window.onunhandledrejection = function() { return true; };
+    // NO SUPRIMIR errores globales - dejar que salgan en consola
+    // window.onerror = function() { return true; };
+    // window.onunhandledrejection = function() { return true; };
     
     const { createClient } = supabase;
     const sb = createClient('https://rklimxsgnfdsnmxpfbgs.supabase.co', 'sb_publishable_p31XLskmCvUgg2GSYbbcyQ_UYSqUiny');
