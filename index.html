@@ -203,12 +203,15 @@
           console.log('✅ Guardando/Actualizando predicción:', h, a);
           state.preds[state.me + '::' + mid] = {home: +h, away: +a};
           const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
+          console.log('🔎 ¿Existe?:', exist.data?.length > 0);
           if(exist.data?.length) {
-            console.log('📝 Actualizando existente');
-            await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+            console.log('📝 Intentando actualizar...');
+            const updateResult = await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
+            console.log('📝 Resultado UPDATE:', updateResult);
           } else {
-            console.log('➕ Insertando nueva');
-            await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: parseInt(h), awayscore: parseInt(a)}]);
+            console.log('➕ Intentando insertar...');
+            const insertResult = await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: parseInt(h), awayscore: parseInt(a)}]);
+            console.log('➕ Resultado INSERT:', insertResult);
           }
         }
         
@@ -465,7 +468,7 @@
         try { cfg = await sb.from('config').select('*').limit(1); } catch(e) { console.error('Error config:', e); }
         try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { }
         try { m = await sb.from('matches').select('*').order('datetime', { ascending: true }); } catch(e) { }
-        try { p = await sb.from('predictions').select('*'); console.log('✅ PREDICCIONES CARGADAS:', p.data?.length, 'registros'); } catch(e) { console.error('❌ ERROR CARGANDO PREDICCIONES:', e); }
+        try { p = await sb.from('predictions').select('*').limit(10000); console.log('✅ PREDICCIONES CARGADAS:', p.data?.length, 'registros'); } catch(e) { console.error('❌ ERROR CARGANDO PREDICCIONES:', e); }
         try { pd = await sb.from('podium').select('*'); } catch(e) { }
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
@@ -487,8 +490,14 @@
         const marcelo_pred = (p.data || []).find(x => x.userid === 'marcelo chacon' && x.matchid === 'm_Arg_Suiz_110726');
         console.log('🔍 Buscando marcelo chacon :: m_Arg_Suiz_110726 en Supabase:', marcelo_pred);
         
-        (p.data || []).forEach(x => {
-          state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore };
+        (p.data || []).forEach((x, idx) => {
+          if(!x.userid || !x.matchid) {
+            console.warn('⚠️ Registro sin userid/matchid:', x);
+          } else if(x.homescore === null || x.awayscore === null) {
+            console.warn('⚠️ Registro con homescore/awayscore NULL:', x);
+          } else {
+            state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore };
+          }
         });
         console.log('✅ STATE.PREDS CARGADO:', Object.keys(state.preds).length, 'predicciones en memoria');
         
