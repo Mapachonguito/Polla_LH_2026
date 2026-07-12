@@ -84,19 +84,8 @@
   <div class="bottom-nav" id="bottomNav"></div>
 
   <script>
-    // Suprimir TODO tipo de notificación
-    const originalError = console.error;
-    console.error = function() { };  // Suprimir solo errores feos de navegador
-    
-    const originalAlert = window.alert;
-    window.alert = function() { };  // Mantener suprimido para evitar spam
-    
-    const originalWarn = console.warn;
-    console.warn = function() { };  // Suprimir warnings de navegador
-    
-    // NO SUPRIMIR errores globales - dejar que salgan en consola
-    // window.onerror = function() { return true; };
-    // window.onunhandledrejection = function() { return true; };
+    // SIN SUPRESORES - MOSTRAR TODO EN CONSOLA
+    console.log('✅ CONSOLA ACTIVA - Todos los errores aparecerán');
     
     const { createClient } = supabase;
     const sb = createClient('https://rklimxsgnfdsnmxpfbgs.supabase.co', 'sb_publishable_p31XLskmCvUgg2GSYbbcyQ_UYSqUiny');
