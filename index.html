@@ -86,13 +86,13 @@
   <script>
     // Suprimir TODO tipo de notificación
     const originalError = console.error;
-    console.error = function() { };
+    // console.error = function() { };  // HABILITADO PARA DEBUG
     
     const originalAlert = window.alert;
-    window.alert = function() { };
+    window.alert = function() { };  // Mantener suprimido para evitar spam
     
     const originalWarn = console.warn;
-    console.warn = function() { };
+    // console.warn = function() { };  // HABILITADO PARA DEBUG
     
     // Suprimir global error handler
     window.onerror = function() { return true; };
@@ -464,7 +464,7 @@
         try { cfg = await sb.from('config').select('*').limit(1); } catch(e) { console.error('Error config:', e); }
         try { u = await sb.from('users').select('id, displayname, pw, role, paid'); } catch(e) { }
         try { m = await sb.from('matches').select('*').order('datetime', { ascending: true }); } catch(e) { }
-        try { p = await sb.from('predictions').select('*'); } catch(e) { console.log('ERROR PREDICCIONES:', e); }
+        try { p = await sb.from('predictions').select('*'); alert('PREDICCIONES: ' + p.data?.length); } catch(e) { alert('ERROR: ' + e.message); }
         try { pd = await sb.from('podium').select('*'); } catch(e) { }
         
         state.config = cfg.data?.length ? cfg.data[0] : null;
