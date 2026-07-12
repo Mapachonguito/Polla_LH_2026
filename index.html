@@ -482,8 +482,18 @@
         }
         (u.data || []).forEach(x => state.users[x.id] = x);
         (m.data || []).forEach(x => state.matches.push(x));
-        (p.data || []).forEach(x => state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore });
+        
+        // Log: Ver si marcelo chacon :: m_Arg_Suiz_110726 se carga
+        const marcelo_pred = (p.data || []).find(x => x.userid === 'marcelo chacon' && x.matchid === 'm_Arg_Suiz_110726');
+        console.log('🔍 Buscando marcelo chacon :: m_Arg_Suiz_110726 en Supabase:', marcelo_pred);
+        
+        (p.data || []).forEach(x => {
+          state.preds[x.userid + '::' + x.matchid] = { home: x.homescore, away: x.awayscore };
+        });
         console.log('✅ STATE.PREDS CARGADO:', Object.keys(state.preds).length, 'predicciones en memoria');
+        
+        // Verificar si la predicción de marcelo está en state.preds
+        console.log('🔍 ¿Marcelo en state.preds?:', state.preds['marcelo chacon::m_Arg_Suiz_110726']);
         (pd.data || []).forEach(x => state.podium[x.userid] = { first: x.first, second: x.second, third: x.third });
         
         // Cargar sesión guardada desde localStorage
