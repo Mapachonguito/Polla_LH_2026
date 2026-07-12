@@ -164,11 +164,16 @@
     };
 
     window.saveAndLogMatch = async function(mid) {
+      console.log('🔵 saveAndLogMatch EJECUTADO para matchid:', mid);
+      
       // PROTECCIÓN: No procesar si los inputs NO EXISTEN en el DOM
       // (significa que el DOM se está destruyendo - F5, cambio de pestaña, etc)
       const hInput = document.getElementById(`h_${mid}`);
       const aInput = document.getElementById(`a_${mid}`);
-      if(!hInput || !aInput) return;
+      if(!hInput || !aInput) {
+        console.log('⚠️ Inputs no encontrados, retornando');
+        return;
+      }
       
       let h = hInput.value || '';
       let a = aInput.value || '';
@@ -186,18 +191,23 @@
       }
       
       try {
+        console.log('💾 Guardando:', mid, h, a);
         const oldPred = state.preds[state.me + '::' + mid];
         const oldPredStr = oldPred ? `${oldPred.home}-${oldPred.away}` : null;
         
         if(!h && !a) {
+          console.log('🗑️ Borrando predicción');
           delete state.preds[state.me + '::' + mid];
           await sb.from('predictions').delete().eq('userid', state.me).eq('matchid', mid);
         } else if(h && a) {
+          console.log('✅ Guardando/Actualizando predicción:', h, a);
           state.preds[state.me + '::' + mid] = {home: +h, away: +a};
           const exist = await sb.from('predictions').select('*').eq('userid', state.me).eq('matchid', mid);
           if(exist.data?.length) {
+            console.log('📝 Actualizando existente');
             await sb.from('predictions').update({homescore: +h, awayscore: +a}).eq('userid', state.me).eq('matchid', mid);
           } else {
+            console.log('➕ Insertando nueva');
             await sb.from('predictions').insert([{userid: String(state.me), matchid: String(mid), homescore: parseInt(h), awayscore: parseInt(a)}]);
           }
         }
@@ -205,15 +215,19 @@
         if(h && a) {
           const newPredStr = `${h}-${a}`;
           if(!oldPredStr) {
+            console.log('📖 Registrando crear en historial');
             await window.logPredictionHistory(mid, null, newPredStr, 'create');
           } else if(oldPredStr !== newPredStr) {
+            console.log('📖 Registrando update en historial');
             await window.logPredictionHistory(mid, oldPredStr, newPredStr, 'update');
           }
         } else if(!h && !a && oldPredStr) {
+          console.log('📖 Registrando delete en historial');
           await window.logPredictionHistory(mid, oldPredStr, null, 'delete');
         }
+        console.log('✨ saveAndLogMatch COMPLETADO');
       } catch(e) {
-        // Silenciar
+        console.error('❌ ERROR EN SAVEMATCH:', e);
       }
     };
 
